@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#6366f1"/>
+
+  <!-- Calendar rings -->
+  <rect x="166" y="76" width="28" height="104" rx="14" fill="white"/>
+  <rect x="318" y="76" width="28" height="104" rx="14" fill="white"/>
+
+  <!-- Calendar body -->
+  <rect x="72" y="126" width="368" height="308" rx="28" fill="rgba(255,255,255,0.13)"/>
+  <rect x="72" y="126" width="368" height="308" rx="28" fill="none" stroke="white" stroke-width="22"/>
+
+  <!-- Header divider -->
+  <line x1="72" y1="216" x2="440" y2="216" stroke="white" stroke-width="22"/>
+
+  <!-- 6 lesson dots: 3 columns × 2 rows -->
+  <circle cx="168" cy="292" r="20" fill="white"/>
+  <circle cx="256" cy="292" r="20" fill="white"/>
+  <circle cx="344" cy="292" r="20" fill="white"/>
+
+  <circle cx="168" cy="362" r="20" fill="white"/>
+  <circle cx="256" cy="362" r="20" fill="white"/>
+  <circle cx="344" cy="362" r="20" fill="white"/>
+</svg>
