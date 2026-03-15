@@ -87,6 +87,7 @@ button {
   z-index: 20;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .header-inner {
