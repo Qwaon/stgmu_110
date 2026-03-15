@@ -6,12 +6,19 @@ export function getTodayKey() {
   return found ? found.key : null
 }
 
-// Возвращает Date для jsDay (1=Пн...5=Пт) текущей недели
+// Возвращает Date для jsDay (1=Пн...5=Пт) текущей/следующей недели
+// В выходные (сб/вс) показывает следующую неделю
 export function getWeekDate(jsDay) {
   const today = new Date()
-  const dow   = today.getDay()
+  const dow   = today.getDay() // 0=вс, 1=пн, ..., 6=сб
   const monday = new Date(today)
-  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1))
+  if (dow === 0) {
+    monday.setDate(today.getDate() + 1)       // вс → следующий пн (+1)
+  } else if (dow === 6) {
+    monday.setDate(today.getDate() + 2)       // сб → следующий пн (+2)
+  } else {
+    monday.setDate(today.getDate() - (dow - 1)) // пн–пт → этот пн
+  }
   monday.setHours(0, 0, 0, 0)
   const d = new Date(monday)
   d.setDate(monday.getDate() + (jsDay - 1))
