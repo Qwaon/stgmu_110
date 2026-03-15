@@ -6,40 +6,33 @@ export function getTodayKey() {
   return found ? found.key : null
 }
 
-// Возвращает Date для jsDay (1=Пн...5=Пт) текущей/следующей недели
-// В выходные (сб/вс) показывает следующую неделю
-export function getWeekDate(jsDay) {
+// Returns Date for jsDay in week with offset (0=current, -1=prev, +1=next)
+export function getWeekDate(jsDay, weekOffset = 0) {
   const today = new Date()
-  const dow   = today.getDay() // 0=вс, 1=пн, ..., 6=сб
+  const dow   = today.getDay()
   const monday = new Date(today)
-  if (dow === 0) {
-    monday.setDate(today.getDate() + 1)       // вс → следующий пн (+1)
-  } else if (dow === 6) {
-    monday.setDate(today.getDate() + 2)       // сб → следующий пн (+2)
-  } else {
-    monday.setDate(today.getDate() - (dow - 1)) // пн–пт → этот пн
-  }
+  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1) + weekOffset * 7)
   monday.setHours(0, 0, 0, 0)
   const d = new Date(monday)
   d.setDate(monday.getDate() + (jsDay - 1))
   return d
 }
 
-// "HH:MM" → минуты
+// "HH:MM" -> minutes
 export function parseMinutes(timeStr) {
   const [h, m] = timeStr.trim().split(':').map(Number)
   return h * 60 + m
 }
 
-// Извлекает первое начало и последний конец из "HH:MM–HH:MM" или "HH:MM–HH:MM / HH:MM–HH:MM"
+// Extracts first start and last end from "HH:MM-HH:MM" or "HH:MM-HH:MM / HH:MM-HH:MM"
 export function getStartEnd(timeStr) {
   const parts = timeStr.split(' / ')
-  const start = parts[0].split('–')[0].trim()
-  const end   = parts[parts.length - 1].split('–')[1].trim()
+  const start = parts[0].split('\u2013')[0].trim()
+  const end   = parts[parts.length - 1].split('\u2013')[1].trim()
   return [start, end]
 }
 
-// Date → 'YYYY-MM-DD'
+// Date -> 'YYYY-MM-DD'
 function toYMD(date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
