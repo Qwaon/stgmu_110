@@ -125,6 +125,41 @@ export async function pauseSession(sessionId: string) {
   revalidatePath('/dashboard/rooms')
 }
 
+export async function addOrder(
+  sessionId: string,
+  menuItemId: string,
+  quantity: number
+): Promise<void> {
+  const { supabase, clubId } = await getAuthContext()
+
+  // Снапшот цены и названия на момент заказа
+  const { data: item, error: itemErr } = await supabase
+    .from('menu_items')
+    .select('name, price')
+    .eq('id', menuItemId)
+    .eq('club_id', clubId)
+    .single()
+
+  if (itemErr || !item) throw new Error('Menu item not found')
+
+  const { error: orderErr } = await supabase
+    .from('orders')
+    .insert({
+      session_id: sessionId,
+      club_id:    clubId,
+      item_name:  item.name,
+      price:      item.price,
+      quantity,
+    })
+
+  if (orderErr) throw new Error(orderErr.message)
+
+  // Атомарный инкремент счётчика популярности
+  await supabase.rpc('increment_order_count', { item_id: menuItemId, amount: quantity })
+
+  revalidatePath('/dashboard/rooms')
+}
+
 export async function resumeSession(sessionId: string) {
   const { supabase, clubId } = await getAuthContext()
 
