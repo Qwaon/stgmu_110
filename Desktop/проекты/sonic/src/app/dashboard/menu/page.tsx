@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { createMenuItem, deleteMenuItem, togglePin } from './actions'
 import type { MenuItem } from '@/lib/types'
