@@ -68,6 +68,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             Бронирования
           </Link>
+          <Link
+            href="/dashboard/menu"
+            className="px-4 py-3 text-sm font-medium text-text-muted hover:text-white transition-colors border-b-2 border-transparent"
+          >
+            Меню
+          </Link>
         </div>
       </nav>
 
