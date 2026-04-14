@@ -55,19 +55,19 @@ export default function EndSessionModal({ room, session, hourlyRate, onClose, on
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-text-muted">Аренда</span>
-            <span className="text-white font-medium">{sessionAmount} ₸</span>
+            <span className="text-white font-medium">{sessionAmount} ₽</span>
           </div>
 
           {session.orders.map(order => (
             <div key={order.id} className="flex justify-between text-sm">
               <span className="text-text-muted">{order.item_name} ×{order.quantity}</span>
-              <span className="text-white font-medium">{order.price * order.quantity} ₸</span>
+              <span className="text-white font-medium">{order.price * order.quantity} ₽</span>
             </div>
           ))}
 
           <div className="border-t border-white/10 pt-2.5 flex justify-between items-baseline">
             <span className="text-white font-bold">Итого</span>
-            <span className="text-accent-light font-black text-xl">{total} ₸</span>
+            <span className="text-accent-light font-black text-xl">{total} ₽</span>
           </div>
         </div>
 

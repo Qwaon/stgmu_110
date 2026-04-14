@@ -39,7 +39,7 @@ export default function RoomCard({ room, clubHourlyRate }: Props) {
             {STATUS_LABEL[room.status]}
           </span>
         </div>
-        <span className="text-text-muted text-xs whitespace-nowrap">{hourlyRate} ₸/ч</span>
+        <span className="text-text-muted text-xs whitespace-nowrap">{hourlyRate} ₽/ч</span>
       </div>
 
       {/* Session info */}
