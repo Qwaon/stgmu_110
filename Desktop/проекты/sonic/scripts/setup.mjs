@@ -90,7 +90,7 @@ async function main() {
   // ── 1. Migrations ────────────────────────────────────────────────────────────
   console.log('📦 Running migrations...')
 
-  const migrations = ['0001_schema.sql', '0002_rls.sql']
+  const migrations = ['0001_schema.sql', '0002_rls.sql', '0004_menu.sql']
   for (const file of migrations) {
     const content = readFileSync(resolve(__dir, '../supabase/migrations', file), 'utf8')
     try {
