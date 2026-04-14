@@ -68,6 +68,16 @@ export interface AppUser {
   created_at: string
 }
 
+export interface MenuItem {
+  id: string
+  club_id: string
+  name: string
+  price: number
+  is_pinned: boolean
+  order_count: number
+  created_at: string
+}
+
 // Session with its orders attached
 export interface ActiveSession extends Session {
   orders: Order[]
