@@ -138,9 +138,9 @@ async function main() {
   // ── 4. Auth users + profiles ─────────────────────────────────────────────────
   console.log('\n👤 Creating users...')
   const usersData = [
-    { email: 'owner@sonic.kz',    role: 'owner', club_id: null   },
-    { email: 'morozova@sonic.kz', role: 'admin', club_id: CLUB_1 },
-    { email: 'tolstogo@sonic.kz', role: 'admin', club_id: CLUB_2 },
+    { email: 'owner@sonic.stv',    role: 'owner', club_id: null   },
+    { email: 'morozova@sonic.stv', role: 'admin', club_id: CLUB_1 },
+    { email: 'tolstogo@sonic.stv', role: 'admin', club_id: CLUB_2 },
   ]
 
   for (const u of usersData) {
@@ -173,9 +173,9 @@ async function main() {
   console.log('\n✅ Setup complete! Всё готово.\n')
   console.log('┌─────────────────────────────────────────────┐')
   console.log('│  Логины                                     │')
-  console.log('│  👑 owner@sonic.kz      — владелец          │')
-  console.log('│  🔑 morozova@sonic.kz   — admin Морозова    │')
-  console.log('│  🔑 tolstogo@sonic.kz   — admin Толстого    │')
+  console.log('│  👑 owner@sonic.stv     — владелец          │')
+  console.log('│  🔑 morozova@sonic.stv  — admin Морозова    │')
+  console.log('│  🔑 tolstogo@sonic.stv  — admin Толстого    │')
   console.log(`│  🔒 Пароль: ${USER_PASS}                │`)
   console.log('└─────────────────────────────────────────────┘\n')
 }

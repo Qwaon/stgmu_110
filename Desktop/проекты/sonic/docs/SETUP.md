@@ -55,9 +55,9 @@ Supabase Dashboard → **Authentication → Users → Add user → Create new us
 
 | Email | Пароль |
 |-------|--------|
-| `owner@sonic.kz` | `sonicstv0709` |
-| `morozova@sonic.kz` | `sonicstv0709` |
-| `tolstogo@sonic.kz` | `sonicstv0709` |
+| `owner@sonic.stv` | `sonicstv0709` |
+| `morozova@sonic.stv` | `sonicstv0709` |
+| `tolstogo@sonic.stv` | `sonicstv0709` |
 
 ---
 
@@ -71,17 +71,17 @@ SELECT
   id,
   email,
   CASE
-    WHEN email = 'owner@sonic.kz'    THEN 'owner'
-    WHEN email = 'morozova@sonic.kz' THEN 'admin'
-    WHEN email = 'tolstogo@sonic.kz' THEN 'admin'
+    WHEN email = 'owner@sonic.stv'    THEN 'owner'
+    WHEN email = 'morozova@sonic.stv' THEN 'admin'
+    WHEN email = 'tolstogo@sonic.stv' THEN 'admin'
   END,
   CASE
-    WHEN email = 'morozova@sonic.kz' THEN 'aaaabbbb-0000-0000-0000-000000000001'::uuid
-    WHEN email = 'tolstogo@sonic.kz' THEN 'aaaabbbb-0000-0000-0000-000000000002'::uuid
+    WHEN email = 'morozova@sonic.stv' THEN 'aaaabbbb-0000-0000-0000-000000000001'::uuid
+    WHEN email = 'tolstogo@sonic.stv' THEN 'aaaabbbb-0000-0000-0000-000000000002'::uuid
     ELSE null
   END
 FROM auth.users
-WHERE email IN ('owner@sonic.kz', 'morozova@sonic.kz', 'tolstogo@sonic.kz');
+WHERE email IN ('owner@sonic.stv', 'morozova@sonic.stv', 'tolstogo@sonic.stv');
 ```
 
 > Этот запрос сам берёт UUID из `auth.users` — ничего копировать не нужно.
@@ -112,9 +112,9 @@ npm run dev
 Открыть [http://localhost:3000](http://localhost:3000)
 
 Войти как:
-- `owner@sonic.kz` → попадёт на `/owner`
-- `morozova@sonic.kz` → попадёт на `/dashboard/rooms` (клуб Морозова)
-- `tolstogo@sonic.kz` → попадёт на `/dashboard/rooms` (клуб Толстого)
+- `owner@sonic.stv` → попадёт на `/owner`
+- `morozova@sonic.stv` → попадёт на `/dashboard/rooms` (клуб Морозова)
+- `tolstogo@sonic.stv` → попадёт на `/dashboard/rooms` (клуб Толстого)
 
 ---
 
@@ -141,8 +141,8 @@ npx vercel
 
 | Роль | Email | Доступ |
 |------|-------|--------|
-| Владелец | `owner@sonic.kz` | Оба клуба, аналитика (Phase 4) |
-| Админ 1 | `morozova@sonic.kz` | Только Sonic — Морозова |
-| Админ 2 | `tolstogo@sonic.kz` | Только Sonic — Толстого |
+| Владелец | `owner@sonic.stv` | Оба клуба, аналитика (Phase 4) |
+| Админ 1 | `morozova@sonic.stv` | Только Sonic — Морозова |
+| Админ 2 | `tolstogo@sonic.stv` | Только Sonic — Толстого |
 
 Пароль для всех: `sonicstv0709`

@@ -114,7 +114,7 @@ revalidatePath('/dashboard/rooms')
 1. Создать проект на supabase.com
 2. `.env.local` → заполнить `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. SQL Editor → запустить `supabase/migrations/0001_schema.sql`, `0002_rls.sql`, `0003_seed.sql`
-4. Authentication → Users → создать `owner@psclub.kz`, `admin1@psclub.kz`, `admin2@psclub.kz`
+4. Authentication → Users → создать `owner@sonic.stv`, `morozova@sonic.stv`, `tolstogo@sonic.stv`
 5. SQL Editor → вставить UID из шага 4 в закомментированный INSERT в `0003_seed.sql`
 6. Database → Replication → включить таблицы `rooms` и `sessions`
 
