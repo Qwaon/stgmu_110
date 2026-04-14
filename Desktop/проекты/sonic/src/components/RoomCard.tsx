@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { RoomWithSession } from '@/lib/types'
 import SessionTimer from './SessionTimer'
 import StartSessionModal from './StartSessionModal'
-import EndSessionModal from './EndSessionModal'
+import SessionSheet from './SessionSheet'
 
 const STATUS_BORDER = { free: 'border-green-500', busy: 'border-red-500', booked: 'border-yellow-500' } as const
 const STATUS_TEXT   = { free: 'text-green-400',   busy: 'text-red-400',   booked: 'text-yellow-400'  } as const
@@ -11,12 +11,14 @@ const STATUS_LABEL  = { free: 'Свободна',          busy: 'Занята',
 
 interface Props {
   room: RoomWithSession
+  clubId: string
   clubHourlyRate: number
+  onEnded?: (sessionId: string, roomId: string) => void
 }
 
-export default function RoomCard({ room, clubHourlyRate }: Props) {
+export default function RoomCard({ room, clubId, clubHourlyRate, onEnded }: Props) {
   const [showStart, setShowStart] = useState(false)
-  const [showEnd, setShowEnd]     = useState(false)
+  const [showSheet, setShowSheet] = useState(false)
 
   const session    = room.active_session
   const hourlyRate = room.hourly_rate ?? clubHourlyRate
@@ -42,9 +44,9 @@ export default function RoomCard({ room, clubHourlyRate }: Props) {
         <span className="text-text-muted text-xs whitespace-nowrap">{hourlyRate} ₽/ч</span>
       </div>
 
-      {/* Session info */}
+      {/* Session info — клик открывает sheet */}
       {session ? (
-        <div className="space-y-1">
+        <div className="space-y-1 cursor-pointer" onClick={() => setShowSheet(true)}>
           <p className="text-white font-medium text-sm truncate">{session.client_name}</p>
           <SessionTimer
             startedAt={session.started_at}
@@ -73,24 +75,34 @@ export default function RoomCard({ room, clubHourlyRate }: Props) {
           </button>
         )}
         {room.status === 'busy' && session && (
-          <button
-            onClick={() => setShowEnd(true)}
-            className="flex-1 bg-red-600/80 hover:bg-red-600 text-white text-sm font-semibold py-2 px-3 rounded-xl transition-colors"
-          >
-            ■ Завершить
-          </button>
+          <>
+            <button
+              onClick={() => setShowSheet(true)}
+              className="flex-1 bg-surface-2 hover:bg-surface-3 text-accent-light text-sm font-semibold py-2 px-3 rounded-xl transition-colors"
+            >
+              + Заказ
+            </button>
+            <button
+              onClick={() => setShowSheet(true)}
+              className="flex-1 bg-red-600/80 hover:bg-red-600 text-white text-sm font-semibold py-2 px-3 rounded-xl transition-colors"
+            >
+              ■ Завершить
+            </button>
+          </>
         )}
       </div>
 
       {showStart && (
         <StartSessionModal room={room} onClose={() => setShowStart(false)} />
       )}
-      {showEnd && session && (
-        <EndSessionModal
+      {showSheet && session && (
+        <SessionSheet
           room={room}
           session={session}
+          clubId={clubId}
           hourlyRate={hourlyRate}
-          onClose={() => setShowEnd(false)}
+          onClose={() => setShowSheet(false)}
+          onEnded={onEnded}
         />
       )}
     </div>

@@ -70,6 +70,10 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
         event: '*', schema: 'public', table: 'sessions',
         filter: `club_id=eq.${clubId}`,
       }, () => refetch())
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'orders',
+        filter: `club_id=eq.${clubId}`,
+      }, () => refetch())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -116,7 +120,9 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
           <RoomCard
             key={room.id}
             room={room}
+            clubId={clubId}
             clubHourlyRate={defaultHourlyRate}
+            onEnded={(sessionId, roomId) => setUndoPending({ sessionId, roomId })}
           />
         ))}
       </div>
