@@ -24,7 +24,7 @@ export default async function RoomsPage() {
     )
   }
 
-  const clubHourlyRate = (profile.clubs as { hourly_rate: number } | null)?.hourly_rate ?? 500
+  const clubHourlyRate = (profile.clubs as unknown as { hourly_rate: number } | null)?.hourly_rate ?? 500
 
   // Fetch rooms with their active/paused session + session orders
   const { data: rooms, error } = await supabase

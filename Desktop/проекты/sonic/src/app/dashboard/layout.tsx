@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('id', user.id)
     .single()
 
-  const clubName = (profile?.clubs as { name: string } | null)?.name ?? 'Клуб'
+  const clubName = (profile?.clubs as unknown as { name: string } | null)?.name ?? 'Клуб'
 
   async function handleSignOut() {
     'use server'
