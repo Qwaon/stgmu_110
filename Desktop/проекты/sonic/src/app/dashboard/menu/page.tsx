@@ -12,10 +12,18 @@ export default async function MenuPage() {
     .eq('id', user!.id)
     .single()
 
+  if (!profile?.club_id) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-text-muted text-sm">Клуб не назначен. Обратитесь к владельцу.</p>
+      </div>
+    )
+  }
+
   const { data: items } = await supabase
     .from('menu_items')
     .select('*')
-    .eq('club_id', profile!.club_id)
+    .eq('club_id', profile.club_id)
     .order('is_pinned', { ascending: false })
     .order('order_count', { ascending: false })
 
