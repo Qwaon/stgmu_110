@@ -29,7 +29,7 @@ export default async function TariffsPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-white font-bold text-xl mb-6">Тарифы</h1>
+      <h1 className="text-white font-semibold text-lg tracking-wide mb-6">Тарифы</h1>
       <TariffSettings rooms={(rooms ?? []) as Room[]} />
     </div>
   )

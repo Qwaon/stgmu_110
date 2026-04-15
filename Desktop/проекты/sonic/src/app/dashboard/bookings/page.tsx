@@ -47,7 +47,7 @@ export default async function BookingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-white font-bold text-xl mb-6">Бронирования</h1>
+      <h1 className="text-white font-semibold text-lg tracking-wide mb-6">Бронирования</h1>
       <BookingsList
         initialBookings={bookings}
         rooms={rooms}

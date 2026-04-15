@@ -34,10 +34,10 @@ export default async function MenuPage() {
   const rest   = menuItems.filter(i => !i.is_pinned)
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-white font-bold text-xl mb-6">Меню</h1>
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-white font-semibold text-lg tracking-wide mb-6">Меню</h1>
 
-      {/* Форма добавления */}
+      {/* Add form */}
       <form
         action={async (formData: FormData) => {
           'use server'
@@ -45,13 +45,13 @@ export default async function MenuPage() {
           const price = parseFloat(formData.get('price') as string)
           if (name && !isNaN(price) && price > 0) await createMenuItem(name, price)
         }}
-        className="bg-surface rounded-2xl p-4 mb-6 flex gap-3 border border-white/10"
+        className="border border-white/10 rounded-lg p-4 mb-6 flex gap-3"
       >
         <input
           name="name"
           placeholder="Название товара"
           required
-          className="flex-1 bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light placeholder:text-text-muted"
+          className="flex-1 bg-transparent text-white text-sm rounded-lg px-3 py-2 border border-white/15 outline-none focus:border-white/50 transition-colors placeholder:text-text-muted"
         />
         <input
           name="price"
@@ -60,28 +60,28 @@ export default async function MenuPage() {
           step="1"
           placeholder="Цена ₽"
           required
-          className="w-28 bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light placeholder:text-text-muted"
+          className="w-28 bg-transparent text-white text-sm rounded-lg px-3 py-2 border border-white/15 outline-none focus:border-white/50 transition-colors placeholder:text-text-muted"
         />
         <button
           type="submit"
-          className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+          className="border border-white/30 hover:border-white/60 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          + Добавить
+          Добавить
         </button>
       </form>
 
-      {/* Закреплённые */}
+      {/* Pinned */}
       {pinned.length > 0 && (
         <section className="mb-6">
-          <p className="text-text-muted text-xs font-semibold uppercase tracking-wide mb-3">📌 Закреплённые</p>
+          <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Закреплённые</p>
           <ItemList items={pinned} />
         </section>
       )}
 
-      {/* Все остальные */}
+      {/* Rest */}
       <section>
         {pinned.length > 0 && rest.length > 0 && (
-          <p className="text-text-muted text-xs font-semibold uppercase tracking-wide mb-3">Все позиции</p>
+          <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Все позиции</p>
         )}
         {menuItems.length === 0 && (
           <p className="text-text-muted text-sm text-center py-12">
@@ -96,11 +96,11 @@ export default async function MenuPage() {
 
 function ItemList({ items }: { items: MenuItem[] }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {items.map(item => (
         <div
           key={item.id}
-          className="bg-surface rounded-xl px-4 py-3 flex items-center gap-3 border border-white/5"
+          className="border border-white/10 rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
         >
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">{item.name}</p>
@@ -111,13 +111,13 @@ function ItemList({ items }: { items: MenuItem[] }) {
             <button
               type="submit"
               title={item.is_pinned ? 'Снять закреп' : 'Закрепить'}
-              className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
+              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                 item.is_pinned
-                  ? 'bg-accent/30 text-accent-light'
-                  : 'bg-surface-2 text-text-muted hover:text-white'
+                  ? 'border-white/30 text-white'
+                  : 'border-white/10 text-text-muted hover:border-white/25 hover:text-white'
               }`}
             >
-              📌
+              {item.is_pinned ? '— открепить' : '+ закрепить'}
             </button>
           </form>
 
@@ -125,9 +125,9 @@ function ItemList({ items }: { items: MenuItem[] }) {
             <button
               type="submit"
               title="Удалить"
-              className="text-xs px-2.5 py-1.5 rounded-lg bg-surface-2 text-text-muted hover:text-red-400 transition-colors"
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-white/10 text-text-muted hover:border-status-busy/40 hover:text-status-busy transition-colors"
             >
-              ✕
+              удалить
             </button>
           </form>
         </div>
