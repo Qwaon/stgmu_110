@@ -5,18 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        accent: {
-          DEFAULT: '#352F73',
-          light: '#4a43a0',
-          hover: '#3d3680',
-        },
-        surface: {
-          DEFAULT: '#1a1a2e',
-          2: '#22223b',
-          3: '#2a2a42',
-        },
-        bg: '#0f0f1a',
-        'text-muted': '#8888aa',
+        bg:            '#0a0a0a',
+        'text-muted':  '#666666',
+        'status-free':   '#22c55e',
+        'status-busy':   '#ef4444',
+        'status-booked': '#eab308',
+      },
+      fontFamily: {
+        sans: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
       },
     },
   },
