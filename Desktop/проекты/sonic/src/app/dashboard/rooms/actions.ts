@@ -19,7 +19,7 @@ async function getAuthContext() {
   return { supabase, clubId: profile.club_id as string }
 }
 
-export async function startSession(roomId: string, clientName: string) {
+export async function startSession(roomId: string) {
   const { supabase, clubId } = await getAuthContext()
 
   const { error: sessionErr } = await supabase
@@ -27,7 +27,7 @@ export async function startSession(roomId: string, clientName: string) {
     .insert({
       room_id: roomId,
       club_id: clubId,
-      client_name: clientName.trim(),
+      client_name: null,
       status: 'active',
     })
 

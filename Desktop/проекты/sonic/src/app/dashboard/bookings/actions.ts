@@ -123,7 +123,7 @@ export async function checkInBooking(bookingId: string): Promise<void> {
   // Get booking details
   const { data: booking } = await supabase
     .from('bookings')
-    .select('room_id, client_name, ends_at')
+    .select('room_id, ends_at')
     .eq('id', bookingId)
     .eq('club_id', clubId)
     .single()
@@ -134,11 +134,11 @@ export async function checkInBooking(bookingId: string): Promise<void> {
   const { error: sessionErr } = await supabase
     .from('sessions')
     .insert({
-      room_id:           booking.room_id,
-      club_id:           clubId,
-      client_name:       booking.client_name,
-      status:            'active',
-      scheduled_end_at:  booking.ends_at,
+      room_id:          booking.room_id,
+      club_id:          clubId,
+      client_name:      null,
+      status:           'active',
+      scheduled_end_at: booking.ends_at,
     })
 
   if (sessionErr) throw new Error(sessionErr.message)
