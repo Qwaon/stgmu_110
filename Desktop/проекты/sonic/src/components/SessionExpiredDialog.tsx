@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { RoomWithSession } from '@/lib/types'
 import EndSessionModal from './EndSessionModal'
+import { IconAlert, IconStop } from './icons'
 
 interface Props {
   rooms: RoomWithSession[]
@@ -60,11 +61,11 @@ export default function SessionExpiredDialog({ rooms, clubFirstHourRate, clubSub
     <>
       {!showEnd && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
-          <div className="bg-surface border border-orange-400/30 rounded-2xl p-4 shadow-2xl">
+          <div className="bg-bg border border-orange-400/40 rounded-lg p-4 shadow-2xl">
             <div className="flex items-start gap-3">
-              <span className="text-2xl flex-shrink-0">⏰</span>
+              <IconAlert className="text-orange-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm">Время вышло</p>
+                <p className="text-white font-semibold text-sm">Время вышло</p>
                 <p className="text-text-muted text-xs truncate">
                   {room.name} · {session.client_name}
                 </p>
@@ -74,15 +75,16 @@ export default function SessionExpiredDialog({ rooms, clubFirstHourRate, clubSub
             <div className="flex gap-2 mt-3">
               <button
                 onClick={dismiss}
-                className="flex-1 bg-surface-2 hover:bg-surface-3 text-text-muted text-sm font-semibold py-2 rounded-xl transition-colors"
+                className="flex-1 border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium py-2 rounded-lg transition-colors"
               >
                 Позже
               </button>
               <button
                 onClick={() => setShowEnd(true)}
-                className="flex-1 bg-red-600/80 hover:bg-red-600 text-white text-sm font-semibold py-2 rounded-xl transition-colors"
+                className="flex-1 border border-status-busy/40 hover:border-status-busy text-status-busy text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
-                ■ Завершить
+                <IconStop />
+                Завершить
               </button>
             </div>
           </div>

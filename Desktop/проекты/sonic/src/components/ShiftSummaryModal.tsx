@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Session, Order } from '@/lib/types'
+import { IconX, IconDownload } from './icons'
 
 interface Props {
   clubId: string
@@ -78,18 +79,20 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-surface rounded-2xl w-full max-w-md border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-bg border border-white/15 rounded-lg w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-white font-bold text-base">Сводка смены</h2>
+            <h2 className="text-white font-semibold text-base">Сводка смены</h2>
             <p className="text-text-muted text-xs">{new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-text-muted hover:text-white transition-colors">
+            <IconX />
+          </button>
         </div>
 
         {loading ? (
@@ -97,13 +100,13 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
         ) : (
           <>
             {/* Summary stats */}
-            <div className="p-4 border-b border-white/10 grid grid-cols-2 gap-3 flex-shrink-0">
-              <StatBox label="Сессий"        value={String(sessions.length)} />
-              <StatBox label="Выручка"        value={`${Math.round(totalRevenue).toLocaleString('ru-RU')} ₽`} highlight />
-              <StatBox label="Аренда"         value={`${Math.round(sessionRevenue).toLocaleString('ru-RU')} ₽`} />
-              <StatBox label="Заказы"         value={`${Math.round(ordersRevenue).toLocaleString('ru-RU')} ₽`} />
-              <StatBox label="Средний чек"    value={avgCheck ? `${avgCheck.toLocaleString('ru-RU')} ₽` : '—'} />
-              <StatBox label="Всего минут"    value={totalMinutes ? `${totalMinutes} мин` : '—'} />
+            <div className="p-4 border-b border-white/10 grid grid-cols-2 gap-2 flex-shrink-0">
+              <StatBox label="Сессий"      value={String(sessions.length)} />
+              <StatBox label="Выручка"     value={`${Math.round(totalRevenue).toLocaleString('ru-RU')} ₽`} highlight />
+              <StatBox label="Аренда"      value={`${Math.round(sessionRevenue).toLocaleString('ru-RU')} ₽`} />
+              <StatBox label="Заказы"      value={`${Math.round(ordersRevenue).toLocaleString('ru-RU')} ₽`} />
+              <StatBox label="Средний чек" value={avgCheck ? `${avgCheck.toLocaleString('ru-RU')} ₽` : '—'} />
+              <StatBox label="Всего минут" value={totalMinutes ? `${totalMinutes} мин` : '—'} />
             </div>
 
             {/* Session list */}
@@ -115,7 +118,7 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
                   {sessions.map(s => {
                     const ordTotal = s.orders.reduce((a, o) => a + o.price * o.quantity, 0)
                     return (
-                      <div key={s.id} className="bg-surface-2 rounded-xl px-3 py-2.5 flex items-center gap-3 border border-white/5">
+                      <div key={s.id} className="border border-white/10 rounded-lg px-3 py-2.5 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">{s.client_name}</p>
                           <p className="text-text-muted text-xs">
@@ -138,16 +141,17 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
             <div className="p-4 border-t border-white/10 flex gap-3 flex-shrink-0">
               <button
                 onClick={onClose}
-                className="flex-1 bg-surface-2 hover:bg-surface-3 text-text-muted text-sm font-semibold py-2.5 rounded-xl transition-colors"
+                className="flex-1 border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
               >
                 Закрыть
               </button>
               <button
                 onClick={exportCSV}
                 disabled={sessions.length === 0}
-                className="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+                className="flex-1 border border-white/30 hover:border-white/60 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
-                ↓ Скачать CSV
+                <IconDownload />
+                CSV
               </button>
             </div>
           </>
@@ -159,8 +163,8 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
 
 function StatBox({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-surface-2 rounded-xl px-3 py-2.5">
-      <p className={`font-bold text-base ${highlight ? 'text-accent-light' : 'text-white'}`}>{value}</p>
+    <div className="border border-white/10 rounded-lg px-3 py-2.5">
+      <p className={`font-bold text-base ${highlight ? 'text-white' : 'text-white'}`}>{value}</p>
       <p className="text-text-muted text-xs">{label}</p>
     </div>
   )

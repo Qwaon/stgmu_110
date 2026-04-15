@@ -17,12 +17,12 @@ export default function UndoToast({ onUndo, onExpire, durationMs = 10000 }: Prop
   }, [])
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-surface-2 border border-white/10 rounded-2xl px-5 py-3 shadow-2xl animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-bg border border-white/15 rounded-lg px-5 py-3 shadow-2xl animate-in slide-in-from-bottom-4">
       <span className="text-text-muted text-sm">Сессия завершена</span>
       <div className="w-px h-4 bg-white/10" />
       <button
         onClick={onUndo}
-        className="text-accent-light font-semibold text-sm hover:text-white transition-colors"
+        className="text-white font-medium text-sm hover:text-white/70 transition-colors border-b border-white/30 pb-px"
       >
         Отменить ({remaining}с)
       </button>
