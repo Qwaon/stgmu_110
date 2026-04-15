@@ -34,6 +34,7 @@ export interface Session {
   total_minutes: number | null
   total_amount: number | null
   status: SessionStatus
+  scheduled_end_at: string | null
   created_at: string
 }
 

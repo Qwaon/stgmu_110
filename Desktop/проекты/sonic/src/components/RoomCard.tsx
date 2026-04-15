@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import type { RoomWithSession } from '@/lib/types'
+import { useState, useEffect } from 'react'
+import type { RoomWithSession, Booking } from '@/lib/types'
 import SessionTimer from './SessionTimer'
 import StartSessionModal from './StartSessionModal'
 import SessionSheet from './SessionSheet'
@@ -13,18 +13,46 @@ interface Props {
   room: RoomWithSession
   clubId: string
   clubHourlyRate: number
+  upcomingBooking?: Booking
   onEnded?: (sessionId: string, roomId: string) => void
 }
 
-export default function RoomCard({ room, clubId, clubHourlyRate, onEnded }: Props) {
+/** Returns ms until scheduled_end_at, or null */
+function msUntilEnd(scheduledEndAt: string | null): number | null {
+  if (!scheduledEndAt) return null
+  return new Date(scheduledEndAt).getTime() - Date.now()
+}
+
+function formatBookingTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
+
+export default function RoomCard({ room, clubId, clubHourlyRate, upcomingBooking, onEnded }: Props) {
   const [showStart, setShowStart] = useState(false)
   const [showSheet, setShowSheet] = useState(false)
+  const [isPulsing, setIsPulsing] = useState(false)
 
   const session    = room.active_session
   const hourlyRate = room.hourly_rate ?? clubHourlyRate
 
+  // Check every 30s if session is within 15 min of scheduled end
+  useEffect(() => {
+    if (!session?.scheduled_end_at) { setIsPulsing(false); return }
+
+    function check() {
+      const remaining = msUntilEnd(session!.scheduled_end_at)
+      setIsPulsing(remaining !== null && remaining > 0 && remaining <= 15 * 60 * 1000)
+    }
+
+    check()
+    const interval = setInterval(check, 30_000)
+    return () => clearInterval(interval)
+  }, [session?.scheduled_end_at])
+
+  const pulseClass = isPulsing ? 'animate-pulse ring-2 ring-yellow-400/60' : ''
+
   return (
-    <div className={`bg-surface rounded-2xl p-5 border-l-4 ${STATUS_BORDER[room.status]} flex flex-col gap-3 transition-colors hover:bg-surface-2`}>
+    <div className={`bg-surface rounded-2xl p-5 border-l-4 ${STATUS_BORDER[room.status]} flex flex-col gap-3 transition-colors hover:bg-surface-2 ${pulseClass}`}>
 
       {/* Header */}
       <div className="flex justify-between items-start gap-2">
@@ -44,7 +72,26 @@ export default function RoomCard({ room, clubId, clubHourlyRate, onEnded }: Prop
         <span className="text-text-muted text-xs whitespace-nowrap">{hourlyRate} ₽/ч</span>
       </div>
 
-      {/* Session info — клик открывает sheet */}
+      {/* Upcoming booking badge (shown on free/booked rooms) */}
+      {upcomingBooking && !session && (
+        <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+          <span className="text-yellow-400 text-[10px]">📅</span>
+          <span className="text-yellow-400 text-xs font-medium">
+            {upcomingBooking.client_name} · {formatBookingTime(upcomingBooking.starts_at)}
+          </span>
+        </div>
+      )}
+
+      {/* Session end alert badge */}
+      {isPulsing && session?.scheduled_end_at && (
+        <div className="bg-orange-400/10 border border-orange-400/30 rounded-lg px-2.5 py-1.5">
+          <p className="text-orange-400 text-xs font-semibold text-center">
+            ⚠ Сессия заканчивается в {formatBookingTime(session.scheduled_end_at)}
+          </p>
+        </div>
+      )}
+
+      {/* Session info */}
       {session ? (
         <div className="space-y-1 cursor-pointer" onClick={() => setShowSheet(true)}>
           <p className="text-white font-medium text-sm truncate">{session.client_name}</p>
@@ -89,6 +136,9 @@ export default function RoomCard({ room, clubId, clubHourlyRate, onEnded }: Prop
               ■ Завершить
             </button>
           </>
+        )}
+        {room.status === 'booked' && (
+          <p className="text-yellow-400/70 text-xs flex-1 text-center py-1">Ожидает заселения</p>
         )}
       </div>
 

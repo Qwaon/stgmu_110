@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { RoomWithSession } from '@/lib/types'
+import type { RoomWithSession, Booking } from '@/lib/types'
 import RoomGrid from '@/components/RoomGrid'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,7 @@ export default async function RoomsPage() {
     )
   }
 
+  const clubId        = profile.club_id as string
   const clubHourlyRate = (profile.clubs as unknown as { hourly_rate: number } | null)?.hourly_rate ?? 500
 
   // Fetch rooms with their active/paused session + session orders
@@ -33,11 +34,11 @@ export default async function RoomsPage() {
       *,
       sessions!inner(
         id, client_name, started_at, ended_at, paused_at,
-        paused_duration_ms, total_minutes, total_amount, status,
+        paused_duration_ms, total_minutes, total_amount, status, scheduled_end_at,
         orders(id, item_name, price, quantity, created_at, session_id, club_id)
       )
     `)
-    .eq('club_id', profile.club_id)
+    .eq('club_id', clubId)
     .in('sessions.status', ['active', 'paused'])
     .order('name')
 
@@ -45,7 +46,7 @@ export default async function RoomsPage() {
   const { data: allRooms } = await supabase
     .from('rooms')
     .select('*')
-    .eq('club_id', profile.club_id)
+    .eq('club_id', clubId)
     .order('name')
 
   if (error) {
@@ -64,10 +65,22 @@ export default async function RoomsPage() {
     active_session: sessionByRoom.get(room.id) ?? null,
   }))
 
+  // Fetch active bookings that haven't ended yet (for room badges)
+  const { data: bookingsData } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('club_id', clubId)
+    .eq('status', 'active')
+    .gte('ends_at', new Date().toISOString())
+    .order('starts_at')
+
+  const bookings: Booking[] = bookingsData ?? []
+
   return (
     <RoomGrid
       initialRooms={roomsWithSession}
-      clubId={profile.club_id}
+      initialBookings={bookings}
+      clubId={clubId}
       defaultHourlyRate={clubHourlyRate}
     />
   )

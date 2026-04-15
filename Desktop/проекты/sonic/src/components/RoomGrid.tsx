@@ -2,12 +2,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { undoEndSession } from '@/app/dashboard/rooms/actions'
-import type { RoomWithSession } from '@/lib/types'
+import type { RoomWithSession, Booking } from '@/lib/types'
 import RoomCard from './RoomCard'
 import UndoToast from './UndoToast'
 
 interface Props {
   initialRooms: RoomWithSession[]
+  initialBookings: Booking[]
   clubId: string
   defaultHourlyRate: number
 }
@@ -17,8 +18,9 @@ interface UndoPending {
   roomId: string
 }
 
-export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Props) {
-  const [rooms, setRooms]           = useState(initialRooms)
+export default function RoomGrid({ initialRooms, initialBookings, clubId, defaultHourlyRate }: Props) {
+  const [rooms,       setRooms]       = useState(initialRooms)
+  const [bookings,    setBookings]    = useState<Booking[]>(initialBookings)
   const [undoPending, setUndoPending] = useState<UndoPending | null>(null)
   const supabase = createClient()
 
@@ -30,7 +32,7 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
         *,
         sessions!inner(
           id, client_name, started_at, ended_at, paused_at,
-          paused_duration_ms, total_minutes, total_amount, status,
+          paused_duration_ms, total_minutes, total_amount, status, scheduled_end_at,
           orders(id, item_name, price, quantity, created_at, session_id, club_id)
         )
       `)
@@ -58,7 +60,18 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
     })))
   }, [clubId])
 
-  // Subscribe to Realtime changes on rooms + sessions
+  const refetchBookings = useCallback(async () => {
+    const { data } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('status', 'active')
+      .gte('ends_at', new Date().toISOString())
+      .order('starts_at')
+    setBookings(data ?? [])
+  }, [clubId])
+
+  // Subscribe to Realtime changes on rooms + sessions + bookings
   useEffect(() => {
     const channel = supabase
       .channel(`club-rooms-${clubId}`)
@@ -74,10 +87,14 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
         event: '*', schema: 'public', table: 'orders',
         filter: `club_id=eq.${clubId}`,
       }, () => refetch())
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'bookings',
+        filter: `club_id=eq.${clubId}`,
+      }, () => refetchBookings())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [clubId, refetch])
+  }, [clubId, refetch, refetchBookings])
 
   async function handleUndo() {
     if (!undoPending) return
@@ -88,6 +105,15 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
     } catch {
       /* silent — session may already be expired */
     }
+  }
+
+  // Find the nearest upcoming booking per room (starts within 4 hours)
+  function upcomingBookingForRoom(roomId: string): Booking | undefined {
+    const now        = Date.now()
+    const fourHoursMs = 4 * 60 * 60 * 1000
+    return bookings.find(
+      b => b.room_id === roomId && new Date(b.starts_at).getTime() - now <= fourHoursMs
+    )
   }
 
   if (rooms.length === 0) {
@@ -103,9 +129,10 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
       {/* Stats bar */}
       <div className="flex gap-4 mb-6">
         {[
-          { label: 'Всего', value: rooms.length, color: 'text-text-muted' },
-          { label: 'Занято', value: rooms.filter(r => r.status === 'busy').length, color: 'text-red-400' },
-          { label: 'Свободно', value: rooms.filter(r => r.status === 'free').length, color: 'text-green-400' },
+          { label: 'Всего',    value: rooms.length,                                        color: 'text-text-muted' },
+          { label: 'Занято',   value: rooms.filter(r => r.status === 'busy').length,       color: 'text-red-400'   },
+          { label: 'Свободно', value: rooms.filter(r => r.status === 'free').length,       color: 'text-green-400' },
+          { label: 'Брони',    value: rooms.filter(r => r.status === 'booked').length,     color: 'text-yellow-400'},
         ].map(stat => (
           <div key={stat.label} className="bg-surface rounded-xl px-4 py-2 border border-white/5">
             <p className={`text-xl font-black ${stat.color}`}>{stat.value}</p>
@@ -122,6 +149,7 @@ export default function RoomGrid({ initialRooms, clubId, defaultHourlyRate }: Pr
             room={room}
             clubId={clubId}
             clubHourlyRate={defaultHourlyRate}
+            upcomingBooking={upcomingBookingForRoom(room.id)}
             onEnded={(sessionId, roomId) => setUndoPending({ sessionId, roomId })}
           />
         ))}
