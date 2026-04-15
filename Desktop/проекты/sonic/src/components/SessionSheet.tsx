@@ -55,7 +55,7 @@ export default function SessionSheet({ room, session, clubId, firstHourRate, sub
           <div className="p-4 border-b border-white/10 flex justify-between items-start">
             <div>
               <h2 className="text-white font-semibold text-base">{room.name}</h2>
-              <p className="text-text-muted text-sm">{session.client_name}</p>
+              {session.client_name && <p className="text-text-muted text-sm">{session.client_name}</p>}
             </div>
             <button onClick={onClose} className="text-text-muted hover:text-white transition-colors mt-0.5">
               <IconX />

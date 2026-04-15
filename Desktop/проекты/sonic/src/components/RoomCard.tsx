@@ -76,7 +76,7 @@ export default function RoomCard({ room, clubId, clubFirstHourRate, clubSubseque
         <div className="border border-status-booked/30 rounded px-2.5 py-1.5 flex items-center gap-1.5">
           <IconCalendar className="text-status-booked flex-shrink-0" />
           <span className="text-status-booked text-xs font-medium truncate">
-            {upcomingBooking.client_name} · {formatBookingTime(upcomingBooking.starts_at)}
+            {upcomingBooking.phone || upcomingBooking.client_name || '—'} · {formatBookingTime(upcomingBooking.starts_at)}
           </span>
         </div>
       )}
@@ -94,7 +94,7 @@ export default function RoomCard({ room, clubId, clubFirstHourRate, clubSubseque
       {/* Session info */}
       {session ? (
         <div className="space-y-1 cursor-pointer" onClick={() => setShowSheet(true)}>
-          <p className="text-white font-medium text-sm truncate">{session.client_name}</p>
+          {session.client_name && <p className="text-white font-medium text-sm truncate">{session.client_name}</p>}
           <SessionTimer
             startedAt={session.started_at}
             pausedAt={session.paused_at}

@@ -67,7 +67,7 @@ export default function SessionExpiredDialog({ rooms, clubFirstHourRate, clubSub
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm">Время вышло</p>
                 <p className="text-text-muted text-xs truncate">
-                  {room.name} · {session.client_name}
+                  {room.name}{session.client_name ? ` · ${session.client_name}` : ''}
                 </p>
                 <p className="text-orange-400 text-xs mt-0.5">Оплата по факту времени</p>
               </div>

@@ -120,7 +120,7 @@ export default function ShiftSummaryModal({ clubId, onClose }: Props) {
                     return (
                       <div key={s.id} className="border border-white/10 rounded-lg px-3 py-2.5 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{s.client_name}</p>
+                          {s.client_name && <p className="text-white text-sm font-medium truncate">{s.client_name}</p>}
                           <p className="text-text-muted text-xs">
                             {s.started_at ? formatTime(s.started_at) : ''}–{s.ended_at ? formatTime(s.ended_at) : ''}
                             {' · '}{s.total_minutes ?? 0} мин

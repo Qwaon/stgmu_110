@@ -47,7 +47,7 @@ export default function EndSessionModal({ room, session, firstHourRate, subseque
         <div className="flex justify-between items-start mb-5">
           <div>
             <h2 className="text-white font-semibold text-base">Завершить сессию</h2>
-            <p className="text-text-muted text-sm">{room.name} · {session.client_name}</p>
+            <p className="text-text-muted text-sm">{room.name}{session.client_name ? ` · ${session.client_name}` : ''}</p>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-white transition-colors">
             <IconX />
