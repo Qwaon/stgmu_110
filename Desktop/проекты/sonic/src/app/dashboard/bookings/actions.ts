@@ -19,25 +19,27 @@ async function getAuthContext() {
 
 export async function createBooking(
   roomId: string,
-  clientName: string,
   phone: string,
   startsAt: string,
-  endsAt: string,
+  endsAt: string | null,
   notes: string
 ): Promise<{ error?: string }> {
   const { supabase, clubId } = await getAuthContext()
 
-  // Conflict check: any active booking for same room that overlaps
-  const { data: conflicts } = await supabase
-    .from('bookings')
-    .select('id')
-    .eq('room_id', roomId)
-    .eq('status', 'active')
-    .lt('starts_at', endsAt)
-    .gt('ends_at', startsAt)
+  // Conflict check: only when this booking has an end time
+  if (endsAt) {
+    const { data: conflicts } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('room_id', roomId)
+      .eq('status', 'active')
+      .not('ends_at', 'is', null)
+      .lt('starts_at', endsAt)
+      .gt('ends_at', startsAt)
 
-  if (conflicts && conflicts.length > 0) {
-    return { error: 'Это время уже занято другой бронью' }
+    if (conflicts && conflicts.length > 0) {
+      return { error: 'Это время уже занято другой бронью' }
+    }
   }
 
   const { error } = await supabase
@@ -45,7 +47,7 @@ export async function createBooking(
     .insert({
       club_id:     clubId,
       room_id:     roomId,
-      client_name: clientName.trim(),
+      client_name: null,
       phone:       phone.trim() || null,
       starts_at:   startsAt,
       ends_at:     endsAt,

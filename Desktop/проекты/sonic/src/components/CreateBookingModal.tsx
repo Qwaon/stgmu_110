@@ -24,33 +24,33 @@ const labelCls = "text-text-muted text-xs mb-1 block tracking-wide uppercase"
 export default function CreateBookingModal({ rooms, onClose }: Props) {
   const today = todayLocal()
 
-  const [roomId,      setRoomId]      = useState(rooms[0]?.id ?? '')
-  const [clientName,  setClientName]  = useState('')
-  const [phone,       setPhone]       = useState('')
-  const [date,        setDate]        = useState(today)
-  const [startTime,   setStartTime]   = useState('10:00')
-  const [endTime,     setEndTime]     = useState('11:00')
-  const [notes,       setNotes]       = useState('')
-  const [loading,     setLoading]     = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
+  const [roomId,     setRoomId]     = useState(rooms[0]?.id ?? '')
+  const [phone,      setPhone]      = useState('')
+  const [date,       setDate]       = useState(today)
+  const [startTime,  setStartTime]  = useState('10:00')
+  const [hasEndTime, setHasEndTime] = useState(false)
+  const [endTime,    setEndTime]    = useState('11:00')
+  const [notes,      setNotes]      = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
-    if (startTime >= endTime) {
+    if (hasEndTime && startTime >= endTime) {
       setError('Время окончания должно быть позже начала')
       return
     }
 
     setLoading(true)
     try {
+      const endsAt = hasEndTime ? toISOLocal(date, endTime) : null
       const result = await createBooking(
         roomId,
-        clientName,
         phone,
         toISOLocal(date, startTime),
-        toISOLocal(date, endTime),
+        endsAt,
         notes,
       )
       if (result.error) {
@@ -95,17 +95,6 @@ export default function CreateBookingModal({ rooms, onClose }: Props) {
           </div>
 
           <div>
-            <label className={labelCls}>Имя клиента</label>
-            <input
-              value={clientName}
-              onChange={e => setClientName(e.target.value)}
-              placeholder="Иванов Иван"
-              required
-              className={inputCls}
-            />
-          </div>
-
-          <div>
             <label className={labelCls}>Телефон</label>
             <input
               value={phone}
@@ -128,27 +117,37 @@ export default function CreateBookingModal({ rooms, onClose }: Props) {
             />
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className={labelCls}>Начало</label>
+          <div>
+            <label className={labelCls}>Начало</label>
+            <input
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              type="time"
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {/* Optional end time */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
-                value={startTime}
-                onChange={e => setStartTime(e.target.value)}
-                type="time"
-                required
-                className={inputCls}
+                type="checkbox"
+                checked={hasEndTime}
+                onChange={e => setHasEndTime(e.target.checked)}
+                className="rounded border-white/20 bg-transparent accent-white"
               />
-            </div>
-            <div className="flex-1">
-              <label className={labelCls}>Конец</label>
+              <span className="text-text-muted text-xs tracking-wide uppercase">Указать время окончания</span>
+            </label>
+            {hasEndTime && (
               <input
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
                 type="time"
                 required
-                className={inputCls}
+                className={`${inputCls} mt-2`}
               />
-            </div>
+            )}
           </div>
 
           <div>

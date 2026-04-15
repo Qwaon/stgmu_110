@@ -57,12 +57,14 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
   const supabase = createClient()
 
   const refetch = useCallback(async () => {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
     const { data } = await supabase
       .from('bookings')
       .select('*')
       .eq('club_id', clubId)
       .eq('status', 'active')
-      .gte('ends_at', new Date().toISOString())
+      .gte('starts_at', todayStart.toISOString())
       .order('starts_at')
     setBookings(data ?? [])
   }, [clubId])
@@ -272,15 +274,15 @@ function BookingCard({ booking: b, roomName, loading, onCheckIn, onCancel, compa
       {/* Time badge */}
       <div className="text-center flex-shrink-0 min-w-[52px]">
         <p className="text-white font-semibold text-sm leading-tight font-mono">{formatTime(b.starts_at)}</p>
-        <p className="text-text-muted text-[10px] font-mono">{formatTime(b.ends_at)}</p>
+        <p className="text-text-muted text-[10px] font-mono">{b.ends_at ? formatTime(b.ends_at) : '—'}</p>
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{b.client_name}</p>
-        <p className="text-text-muted text-xs truncate">
-          {compact ? '' : `${roomName} · `}{b.phone || 'без телефона'}
-        </p>
+        <p className="text-white text-sm font-medium truncate">{b.phone || 'без телефона'}</p>
+        {!compact && (
+          <p className="text-text-muted text-xs truncate">{roomName}</p>
+        )}
         {b.notes && <p className="text-text-muted text-xs truncate italic">{b.notes}</p>}
       </div>
 
