@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createBooking } from '@/app/dashboard/bookings/actions'
 import type { Room } from '@/lib/types'
+import { IconX } from './icons'
 
 interface Props {
   rooms: Room[]
@@ -14,9 +15,11 @@ function todayLocal() {
 }
 
 function toISOLocal(dateStr: string, timeStr: string): string {
-  // Combine local date + time into ISO string for DB (stored as UTC)
   return new Date(`${dateStr}T${timeStr}`).toISOString()
 }
+
+const inputCls = "w-full bg-transparent border border-white/15 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/50 transition-colors placeholder:text-text-muted"
+const labelCls = "text-text-muted text-xs mb-1 block tracking-wide uppercase"
 
 export default function CreateBookingModal({ rooms, onClose }: Props) {
   const today = todayLocal()
@@ -64,25 +67,26 @@ export default function CreateBookingModal({ rooms, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-surface rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-bg border border-white/15 rounded-lg w-full max-w-sm shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex justify-between items-center">
-          <h2 className="text-white font-bold text-base">Новая бронь</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white text-xl leading-none">×</button>
+          <h2 className="text-white font-semibold text-base">Новая бронь</h2>
+          <button onClick={onClose} className="text-text-muted hover:text-white transition-colors">
+            <IconX />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          {/* Room */}
           <div>
-            <label className="text-text-muted text-xs mb-1 block">Комната</label>
+            <label className={labelCls}>Комната</label>
             <select
               value={roomId}
               onChange={e => setRoomId(e.target.value)}
               required
-              className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light"
+              className="w-full bg-bg border border-white/15 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/50 transition-colors"
             >
               {rooms.map(r => (
                 <option key={r.id} value={r.id}>{r.name}{r.type === 'vip' ? ' (VIP)' : ''}</option>
@@ -90,94 +94,89 @@ export default function CreateBookingModal({ rooms, onClose }: Props) {
             </select>
           </div>
 
-          {/* Client name */}
           <div>
-            <label className="text-text-muted text-xs mb-1 block">Имя клиента</label>
+            <label className={labelCls}>Имя клиента</label>
             <input
               value={clientName}
               onChange={e => setClientName(e.target.value)}
               placeholder="Иванов Иван"
               required
-              className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light placeholder:text-text-muted"
+              className={inputCls}
             />
           </div>
 
-          {/* Phone */}
           <div>
-            <label className="text-text-muted text-xs mb-1 block">Телефон</label>
+            <label className={labelCls}>Телефон</label>
             <input
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+7 999 000 00 00"
               type="tel"
-              className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light placeholder:text-text-muted"
+              className={inputCls}
             />
           </div>
 
-          {/* Date */}
           <div>
-            <label className="text-text-muted text-xs mb-1 block">Дата</label>
+            <label className={labelCls}>Дата</label>
             <input
               value={date}
               onChange={e => setDate(e.target.value)}
               type="date"
               min={today}
               required
-              className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light"
+              className={inputCls}
             />
           </div>
 
-          {/* Time range */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-text-muted text-xs mb-1 block">Начало</label>
+              <label className={labelCls}>Начало</label>
               <input
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
                 type="time"
                 required
-                className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light"
+                className={inputCls}
               />
             </div>
             <div className="flex-1">
-              <label className="text-text-muted text-xs mb-1 block">Конец</label>
+              <label className={labelCls}>Конец</label>
               <input
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
                 type="time"
                 required
-                className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light"
+                className={inputCls}
               />
             </div>
           </div>
 
-          {/* Notes */}
           <div>
-            <label className="text-text-muted text-xs mb-1 block">Заметки (необязательно)</label>
+            <label className={labelCls}>Заметки (необязательно)</label>
             <input
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Предпочтения, детали..."
-              className="w-full bg-surface-2 text-white text-sm rounded-xl px-3 py-2 border border-white/10 outline-none focus:border-accent-light placeholder:text-text-muted"
+              className={inputCls}
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-xs bg-red-500/10 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-status-busy text-xs border border-status-busy/30 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-surface-2 hover:bg-surface-3 text-text-muted text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 border border-white/30 hover:border-white/60 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
             >
               {loading ? 'Создаём...' : 'Забронировать'}
             </button>
