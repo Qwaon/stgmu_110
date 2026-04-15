@@ -124,13 +124,9 @@ export function IconCheck({ className, ...props }: IconProps) {
   )
 }
 
-/** Placeholder — user replaces this with their own SVG */
-export function LogoPlaceholder({ className, ...props }: IconProps) {
+export function LogoPlaceholder({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" {...props} className={className} width={28} height={28}>
-      {/* INSERT_LOGO_SVG — replace the content below with your logo paths */}
-      <rect x="2" y="2" width="28" height="28" rx="4" stroke="currentColor" strokeWidth="1.5" />
-      <text x="16" y="21" textAnchor="middle" fontSize="14" fontWeight="700" fill="currentColor" fontFamily="Outfit">S</text>
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/sonic.svg" width={28} height={28} alt="Sonic" className={className} />
   )
 }
