@@ -15,19 +15,20 @@ interface Props {
   room: Room
   session: ActiveSession
   clubId: string
-  hourlyRate: number
+  firstHourRate: number
+  subsequentRate: number
   onClose: () => void
   onEnded?: (sessionId: string, roomId: string) => void
 }
 
-export default function SessionSheet({ room, session, clubId, hourlyRate, onClose, onEnded }: Props) {
+export default function SessionSheet({ room, session, clubId, firstHourRate, subsequentRate, onClose, onEnded }: Props) {
   const [showAddOrder, setShowAddOrder] = useState(false)
   const [showEnd, setShowEnd]           = useState(false)
   const [pausing, setPausing]           = useState(false)
 
   const elapsedMs     = calculateElapsedMs(session.started_at, session.paused_at, session.paused_duration_ms)
   const minutes       = calculateSessionMinutes(elapsedMs)
-  const sessionAmount = calculateSessionAmount(minutes, hourlyRate)
+  const sessionAmount = calculateSessionAmount(minutes, firstHourRate, subsequentRate)
   const ordersTotal   = session.orders.reduce((sum, o) => sum + o.price * o.quantity, 0)
   const total         = Math.round((sessionAmount + ordersTotal) * 100) / 100
 
@@ -95,6 +96,13 @@ export default function SessionSheet({ room, session, clubId, hourlyRate, onClos
             </button>
           </div>
 
+          {/* Тариф */}
+          <div className="px-4 py-2 border-b border-white/5">
+            <p className="text-text-muted text-xs">
+              {firstHourRate} ₽/1ч · {subsequentRate} ₽/ч далее
+            </p>
+          </div>
+
           {/* Кнопки действий */}
           <div className="p-4 flex gap-2">
             <button
@@ -127,7 +135,8 @@ export default function SessionSheet({ room, session, clubId, hourlyRate, onClos
         <EndSessionModal
           room={room}
           session={session}
-          hourlyRate={hourlyRate}
+          firstHourRate={firstHourRate}
+          subsequentRate={subsequentRate}
           onClose={() => setShowEnd(false)}
           onEnded={(sid, rid) => { onEnded?.(sid, rid); onClose() }}
         />

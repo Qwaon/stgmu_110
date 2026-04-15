@@ -27,10 +27,22 @@ export function calculateSessionMinutes(elapsedMs: number): number {
 }
 
 /**
- * Calculate session cost: minutes × hourly_rate / 60, rounded to 2 decimal places.
+ * Calculate session cost with tiered pricing:
+ * - First 60 minutes: firstHourRate (prorated)
+ * - Beyond 60 minutes: firstHourRate + (additionalMinutes / 60) × subsequentRate
+ * If subsequentRate is omitted, flat rate applies (backward compat).
  */
-export function calculateSessionAmount(minutes: number, hourlyRate: number): number {
-  return Math.round((minutes / 60) * hourlyRate * 100) / 100
+export function calculateSessionAmount(
+  minutes: number,
+  firstHourRate: number,
+  subsequentRate: number = firstHourRate,
+): number {
+  if (minutes <= 0) return 0
+  if (minutes <= 60) {
+    return Math.round((minutes / 60) * firstHourRate * 100) / 100
+  }
+  const additional = Math.round(((minutes - 60) / 60) * subsequentRate * 100) / 100
+  return Math.round((firstHourRate + additional) * 100) / 100
 }
 
 /**

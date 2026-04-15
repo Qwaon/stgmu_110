@@ -46,18 +46,21 @@ export async function startSession(roomId: string, clientName: string) {
 export async function endSession(
   sessionId: string,
   roomId: string,
-  hourlyRate: number
+  _legacyHourlyRate?: number   // kept for compat, rates now read from room
 ): Promise<{ minutes: number; sessionAmount: number; ordersTotal: number; total: number }> {
   const { supabase, clubId } = await getAuthContext()
 
-  const { data: session } = await supabase
-    .from('sessions')
-    .select('*, orders(*)')
-    .eq('id', sessionId)
-    .eq('club_id', clubId)
-    .single()
+  const [{ data: session }, { data: room }, { data: club }] = await Promise.all([
+    supabase.from('sessions').select('*, orders(*)').eq('id', sessionId).eq('club_id', clubId).single(),
+    supabase.from('rooms').select('first_hour_rate, subsequent_rate, hourly_rate').eq('id', roomId).single(),
+    supabase.from('clubs').select('hourly_rate').eq('id', clubId).single(),
+  ])
 
   if (!session) throw new Error('Session not found')
+
+  const fallback      = club?.hourly_rate ?? 500
+  const firstHourRate = room?.first_hour_rate ?? fallback
+  const subsequentRate = room?.subsequent_rate ?? fallback
 
   const elapsedMs = calculateElapsedMs(
     session.started_at,
@@ -65,7 +68,7 @@ export async function endSession(
     session.paused_duration_ms
   )
   const minutes       = calculateSessionMinutes(elapsedMs)
-  const sessionAmount = calculateSessionAmount(minutes, hourlyRate)
+  const sessionAmount = calculateSessionAmount(minutes, firstHourRate, subsequentRate)
   const ordersTotal   = (session.orders as Order[]).reduce(
     (sum, o) => sum + o.price * o.quantity, 0
   )

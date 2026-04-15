@@ -12,7 +12,8 @@ const STATUS_LABEL  = { free: 'Свободна',          busy: 'Занята',
 interface Props {
   room: RoomWithSession
   clubId: string
-  clubHourlyRate: number
+  clubFirstHourRate: number
+  clubSubsequentRate: number
   upcomingBooking?: Booking
   onEnded?: (sessionId: string, roomId: string) => void
 }
@@ -27,13 +28,14 @@ function formatBookingTime(iso: string) {
   return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function RoomCard({ room, clubId, clubHourlyRate, upcomingBooking, onEnded }: Props) {
+export default function RoomCard({ room, clubId, clubFirstHourRate, clubSubsequentRate, upcomingBooking, onEnded }: Props) {
   const [showStart, setShowStart] = useState(false)
   const [showSheet, setShowSheet] = useState(false)
   const [isPulsing, setIsPulsing] = useState(false)
 
-  const session    = room.active_session
-  const hourlyRate = room.hourly_rate ?? clubHourlyRate
+  const session        = room.active_session
+  const firstHourRate  = room.first_hour_rate  ?? clubFirstHourRate
+  const subsequentRate = room.subsequent_rate  ?? clubSubsequentRate
 
   // Check every 30s if session is within 15 min of scheduled end
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function RoomCard({ room, clubId, clubHourlyRate, upcomingBooking
             {STATUS_LABEL[room.status]}
           </span>
         </div>
-        <span className="text-text-muted text-xs whitespace-nowrap">{hourlyRate} ₽/ч</span>
+        <span className="text-text-muted text-xs whitespace-nowrap">{firstHourRate}/{subsequentRate} ₽</span>
       </div>
 
       {/* Upcoming booking badge (shown on free/booked rooms) */}
@@ -150,7 +152,8 @@ export default function RoomCard({ room, clubId, clubHourlyRate, upcomingBooking
           room={room}
           session={session}
           clubId={clubId}
-          hourlyRate={hourlyRate}
+          firstHourRate={firstHourRate}
+          subsequentRate={subsequentRate}
           onClose={() => setShowSheet(false)}
           onEnded={onEnded}
         />

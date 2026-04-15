@@ -7,19 +7,20 @@ import type { Room, ActiveSession } from '@/lib/types'
 interface Props {
   room: Room
   session: ActiveSession
-  hourlyRate: number
+  firstHourRate: number
+  subsequentRate: number
   onClose: () => void
   onEnded?: (sessionId: string, roomId: string) => void
 }
 
-export default function EndSessionModal({ room, session, hourlyRate, onClose, onEnded }: Props) {
+export default function EndSessionModal({ room, session, firstHourRate, subsequentRate, onClose, onEnded }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
 
   // Preview calculation at time of modal open
   const elapsedMs     = calculateElapsedMs(session.started_at, session.paused_at, session.paused_duration_ms)
   const minutes       = calculateSessionMinutes(elapsedMs)
-  const sessionAmount = calculateSessionAmount(minutes, hourlyRate)
+  const sessionAmount = calculateSessionAmount(minutes, firstHourRate, subsequentRate)
   const ordersTotal   = session.orders.reduce((sum, o) => sum + o.price * o.quantity, 0)
   const total         = Math.round((sessionAmount + ordersTotal) * 100) / 100
 
@@ -27,7 +28,7 @@ export default function EndSessionModal({ room, session, hourlyRate, onClose, on
     setLoading(true)
     setError(null)
     try {
-      await endSession(session.id, room.id, hourlyRate)
+      await endSession(session.id, room.id)
       onEnded?.(session.id, room.id)
       onClose()
     } catch {

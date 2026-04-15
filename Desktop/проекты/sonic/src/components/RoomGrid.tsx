@@ -5,12 +5,15 @@ import { undoEndSession } from '@/app/dashboard/rooms/actions'
 import type { RoomWithSession, Booking } from '@/lib/types'
 import RoomCard from './RoomCard'
 import UndoToast from './UndoToast'
+import SessionExpiredDialog from './SessionExpiredDialog'
+import ShiftSummaryModal from './ShiftSummaryModal'
 
 interface Props {
   initialRooms: RoomWithSession[]
   initialBookings: Booking[]
   clubId: string
-  defaultHourlyRate: number
+  clubFirstHourRate: number
+  clubSubsequentRate: number
 }
 
 interface UndoPending {
@@ -18,10 +21,11 @@ interface UndoPending {
   roomId: string
 }
 
-export default function RoomGrid({ initialRooms, initialBookings, clubId, defaultHourlyRate }: Props) {
-  const [rooms,       setRooms]       = useState(initialRooms)
-  const [bookings,    setBookings]    = useState<Booking[]>(initialBookings)
-  const [undoPending, setUndoPending] = useState<UndoPending | null>(null)
+export default function RoomGrid({ initialRooms, initialBookings, clubId, clubFirstHourRate, clubSubsequentRate }: Props) {
+  const [rooms,         setRooms]         = useState(initialRooms)
+  const [bookings,      setBookings]      = useState<Booking[]>(initialBookings)
+  const [undoPending,   setUndoPending]   = useState<UndoPending | null>(null)
+  const [showSummary,   setShowSummary]   = useState(false)
   const supabase = createClient()
 
   // Refetch all rooms for this club from Supabase
@@ -126,6 +130,16 @@ export default function RoomGrid({ initialRooms, initialBookings, clubId, defaul
 
   return (
     <>
+      {/* Shift summary button */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setShowSummary(true)}
+          className="bg-surface hover:bg-surface-2 border border-white/10 text-text-muted hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
+        >
+          📋 Сводка смены
+        </button>
+      </div>
+
       {/* Stats bar */}
       <div className="flex gap-4 mb-6">
         {[
@@ -148,7 +162,8 @@ export default function RoomGrid({ initialRooms, initialBookings, clubId, defaul
             key={room.id}
             room={room}
             clubId={clubId}
-            clubHourlyRate={defaultHourlyRate}
+            clubFirstHourRate={clubFirstHourRate}
+            clubSubsequentRate={clubSubsequentRate}
             upcomingBooking={upcomingBookingForRoom(room.id)}
             onEnded={(sessionId, roomId) => setUndoPending({ sessionId, roomId })}
           />
@@ -159,6 +174,19 @@ export default function RoomGrid({ initialRooms, initialBookings, clubId, defaul
         <UndoToast
           onUndo={handleUndo}
           onExpire={() => setUndoPending(null)}
+        />
+      )}
+
+      <SessionExpiredDialog
+        rooms={rooms}
+        clubFirstHourRate={clubFirstHourRate}
+        clubSubsequentRate={clubSubsequentRate}
+      />
+
+      {showSummary && (
+        <ShiftSummaryModal
+          clubId={clubId}
+          onClose={() => setShowSummary(false)}
         />
       )}
     </>

@@ -74,6 +74,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             Меню
           </Link>
+          <Link
+            href="/dashboard/tariffs"
+            className="px-4 py-3 text-sm font-medium text-text-muted hover:text-white transition-colors border-b-2 border-transparent"
+          >
+            Тарифы
+          </Link>
         </div>
       </nav>
 

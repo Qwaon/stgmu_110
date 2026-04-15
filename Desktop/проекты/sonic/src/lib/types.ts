@@ -19,6 +19,8 @@ export interface Room {
   type: RoomType
   status: RoomStatus
   hourly_rate: number | null
+  first_hour_rate: number | null
+  subsequent_rate: number | null
   created_at: string
 }
 

@@ -24,8 +24,10 @@ export default async function RoomsPage() {
     )
   }
 
-  const clubId        = profile.club_id as string
-  const clubHourlyRate = (profile.clubs as unknown as { hourly_rate: number } | null)?.hourly_rate ?? 500
+  const clubId             = profile.club_id as string
+  const clubRaw            = profile.clubs as unknown as { hourly_rate: number } | null
+  const clubFirstHourRate  = clubRaw?.hourly_rate ?? 250
+  const clubSubsequentRate = clubFirstHourRate > 250 ? 300 : 200 // VIP fallback heuristic
 
   // Fetch rooms with their active/paused session + session orders
   const { data: rooms, error } = await supabase
@@ -81,7 +83,8 @@ export default async function RoomsPage() {
       initialRooms={roomsWithSession}
       initialBookings={bookings}
       clubId={clubId}
-      defaultHourlyRate={clubHourlyRate}
+      clubFirstHourRate={clubFirstHourRate}
+      clubSubsequentRate={clubSubsequentRate}
     />
   )
 }
