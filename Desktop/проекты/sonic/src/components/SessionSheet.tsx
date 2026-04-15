@@ -10,6 +10,7 @@ import type { Room, ActiveSession } from '@/lib/types'
 import SessionTimer from './SessionTimer'
 import AddOrderModal from './AddOrderModal'
 import EndSessionModal from './EndSessionModal'
+import { IconX, IconPause, IconResume, IconPlus, IconStop } from './icons'
 
 interface Props {
   room: Room
@@ -45,78 +46,78 @@ export default function SessionSheet({ room, session, clubId, firstHourRate, sub
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center p-4"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center p-4"
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div className="bg-surface rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+        <div className="bg-bg border border-white/15 rounded-lg w-full max-w-sm shadow-2xl">
 
           {/* Header */}
           <div className="p-4 border-b border-white/10 flex justify-between items-start">
             <div>
-              <h2 className="text-white font-bold text-base">{room.name}</h2>
+              <h2 className="text-white font-semibold text-base">{room.name}</h2>
               <p className="text-text-muted text-sm">{session.client_name}</p>
             </div>
-            <button onClick={onClose} className="text-text-muted hover:text-white text-xl leading-none mt-0.5">×</button>
-          </div>
-
-          {/* Таймер + предварительная сумма */}
-          <div className="p-4 border-b border-white/10 flex justify-between items-center">
-            <SessionTimer
-              startedAt={session.started_at}
-              pausedAt={session.paused_at}
-              pausedDurationMs={session.paused_duration_ms}
-              status={session.status}
-            />
-            <div className="text-right">
-              <p className="text-white font-bold text-lg">{total} ₽</p>
-              <p className="text-text-muted text-xs">предварительно</p>
-            </div>
-          </div>
-
-          {/* Список заказов */}
-          <div className="p-4 border-b border-white/10">
-            <p className="text-text-muted text-xs font-semibold uppercase tracking-wide mb-2">Заказы</p>
-            {session.orders.length === 0 ? (
-              <p className="text-text-muted text-sm">Нет заказов</p>
-            ) : (
-              <div className="space-y-1.5 mb-3">
-                {session.orders.map(order => (
-                  <div key={order.id} className="flex justify-between text-sm">
-                    <span className="text-white">{order.item_name} ×{order.quantity}</span>
-                    <span className="text-text-muted">{(order.price * order.quantity).toFixed(0)} ₽</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={() => setShowAddOrder(true)}
-              className="mt-1 w-full bg-surface-2 hover:bg-surface-3 text-accent-light text-sm font-semibold py-2 rounded-xl border border-white/5 transition-colors"
-            >
-              + Добавить позицию
+            <button onClick={onClose} className="text-text-muted hover:text-white transition-colors mt-0.5">
+              <IconX />
             </button>
           </div>
 
-          {/* Тариф */}
-          <div className="px-4 py-2 border-b border-white/5">
+          {/* Timer + amount */}
+          <div className="p-4 border-b border-white/10">
+            <div className="flex justify-between items-center mb-1">
+              <SessionTimer
+                startedAt={session.started_at}
+                pausedAt={session.paused_at}
+                pausedDurationMs={session.paused_duration_ms}
+                status={session.status}
+              />
+              <span className="text-white font-semibold">{total} ₽</span>
+            </div>
             <p className="text-text-muted text-xs">
-              {firstHourRate} ₽/1ч · {subsequentRate} ₽/ч далее
+              {minutes} мин · аренда {sessionAmount} ₽{ordersTotal > 0 ? ` · заказы ${ordersTotal} ₽` : ''}
             </p>
           </div>
 
-          {/* Кнопки действий */}
+          {/* Orders list */}
+          {session.orders.length > 0 && (
+            <div className="p-4 border-b border-white/10 space-y-1.5">
+              {session.orders.map(order => (
+                <div key={order.id} className="flex justify-between text-sm">
+                  <span className="text-white">{order.item_name} <span className="text-text-muted">×{order.quantity}</span></span>
+                  <span className="text-text-muted">{(order.price * order.quantity).toFixed(0)} ₽</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tariff */}
+          <div className="px-4 py-2 border-b border-white/10">
+            <p className="text-text-muted text-xs">{firstHourRate} ₽/1ч · {subsequentRate} ₽/ч далее</p>
+          </div>
+
+          {/* Actions */}
           <div className="p-4 flex gap-2">
             <button
               onClick={handlePauseResume}
               disabled={pausing}
-              className="flex-1 bg-surface-2 hover:bg-surface-3 disabled:opacity-50 text-text-muted text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
             >
-              {session.status === 'paused' ? '▶ Возобновить' : '⏸ Пауза'}
+              {session.status === 'active'
+                ? <><IconPause /> Пауза</>
+                : <><IconResume /> Продолжить</>
+              }
+            </button>
+            <button
+              onClick={() => setShowAddOrder(true)}
+              className="flex-1 border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            >
+              <IconPlus /> Заказ
             </button>
             <button
               onClick={() => setShowEnd(true)}
-              className="flex-1 bg-red-600/80 hover:bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="flex-1 border border-status-busy/40 hover:border-status-busy text-status-busy text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
             >
-              ■ Завершить
+              <IconStop /> Завершить
             </button>
           </div>
         </div>
