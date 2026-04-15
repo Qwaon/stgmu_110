@@ -28,7 +28,7 @@ export interface Session {
   id: string
   room_id: string
   club_id: string
-  client_name: string
+  client_name: string | null
   started_at: string
   ended_at: string | null
   paused_at: string | null
@@ -54,10 +54,10 @@ export interface Booking {
   id: string
   club_id: string
   room_id: string
-  client_name: string
+  client_name: string | null
   phone: string | null
   starts_at: string
-  ends_at: string
+  ends_at: string | null
   notes: string | null
   status: BookingStatus
   created_at: string
