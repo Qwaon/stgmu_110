@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import type { Club, Session } from '@/lib/types'
+import { IconDownload } from '../icons'
 
 interface Props {
   clubs: Club[]
@@ -11,9 +12,7 @@ interface Props {
 }
 
 const DAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-const CLUB_COLORS = ['#4a43a0', '#22c55e']
-
-// ── helpers ────────────────────────────────────────────────────────────────
+const CLUB_COLORS = ['#ffffff', '#22c55e']
 
 function dateKey(iso: string) {
   const d = new Date(iso)
@@ -21,7 +20,6 @@ function dateKey(iso: string) {
 }
 
 function buildDailyRevenue(sessions: Session[], clubs: Club[]) {
-  // Build last-30-day keys
   const keys: string[] = []
   for (let i = 29; i >= 0; i--) {
     const d = new Date()
@@ -29,8 +27,7 @@ function buildDailyRevenue(sessions: Session[], clubs: Club[]) {
     keys.push(dateKey(d.toISOString()))
   }
 
-  // revenue per club per day
-  const data = keys.map(day => {
+  return keys.map(day => {
     const row: Record<string, string | number> = { day }
     for (const club of clubs) {
       row[club.id] = sessions
@@ -39,11 +36,9 @@ function buildDailyRevenue(sessions: Session[], clubs: Club[]) {
     }
     return row
   })
-  return data
 }
 
 function buildHeatmap(sessions: Session[]) {
-  // [dayOfWeek 0-6][hour 0-23] = count
   const grid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0))
   for (const s of sessions) {
     if (!s.started_at) continue
@@ -52,8 +47,6 @@ function buildHeatmap(sessions: Session[]) {
   }
   return grid
 }
-
-// ── CSV export ─────────────────────────────────────────────────────────────
 
 function exportCSV(sessions: Session[], clubs: Club[]) {
   const clubMap = Object.fromEntries(clubs.map(c => [c.id, c.name]))
@@ -71,12 +64,10 @@ function exportCSV(sessions: Session[], clubs: Club[]) {
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href     = url
-  a.download = `psclub-report-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `sonic-report-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
-
-// ── component ──────────────────────────────────────────────────────────────
 
 export default function OwnerAnalytics({ clubs, sessions }: Props) {
   const [selectedClubs, setSelectedClubs] = useState<Set<string>>(new Set(clubs.map(c => c.id)))
@@ -86,10 +77,9 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
     [sessions, selectedClubs]
   )
 
-  const dailyData  = useMemo(() => buildDailyRevenue(filtered, clubs.filter(c => selectedClubs.has(c.id))), [filtered, clubs, selectedClubs])
-  const heatmap    = useMemo(() => buildHeatmap(filtered), [filtered])
-
-  const maxHeat = useMemo(() => Math.max(...heatmap.flat(), 1), [heatmap])
+  const dailyData = useMemo(() => buildDailyRevenue(filtered, clubs.filter(c => selectedClubs.has(c.id))), [filtered, clubs, selectedClubs])
+  const heatmap   = useMemo(() => buildHeatmap(filtered), [filtered])
+  const maxHeat   = useMemo(() => Math.max(...heatmap.flat(), 1), [heatmap])
 
   function toggleClub(id: string) {
     setSelectedClubs(prev => {
@@ -99,7 +89,6 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
     })
   }
 
-  // Tooltip formatter
   const tooltipFormatter = (value: unknown, name: unknown) => {
     const clubId = typeof name === 'string' ? name : ''
     const club = clubs.find(c => c.id === clubId)
@@ -108,15 +97,16 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-white font-bold text-xl">Аналитика</h1>
+        <h1 className="text-white font-semibold text-lg tracking-wide">Аналитика</h1>
         <button
           onClick={() => exportCSV(filtered, clubs)}
-          className="bg-surface-2 hover:bg-surface-3 border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
+          className="border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
         >
-          ↓ Экспорт CSV
+          <IconDownload />
+          Экспорт CSV
         </button>
       </div>
 
@@ -126,41 +116,44 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
           <button
             key={c.id}
             onClick={() => toggleClub(c.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
               selectedClubs.has(c.id)
-                ? 'border-transparent text-white'
-                : 'bg-surface border-white/10 text-text-muted'
+                ? 'border-white/40 text-white'
+                : 'border-white/10 text-text-muted hover:border-white/20'
             }`}
-            style={selectedClubs.has(c.id) ? { backgroundColor: CLUB_COLORS[i % CLUB_COLORS.length] } : {}}
           >
+            <span
+              className="inline-block w-2 h-2 rounded-full mr-2"
+              style={{ backgroundColor: CLUB_COLORS[i % CLUB_COLORS.length] }}
+            />
             {c.name}
           </button>
         ))}
       </div>
 
       {/* Revenue chart */}
-      <div className="bg-surface rounded-2xl p-5 border border-white/5">
-        <p className="text-white font-semibold mb-4">Выручка за 30 дней</p>
+      <div className="border border-white/10 rounded-lg p-5">
+        <p className="text-white font-medium mb-4 text-sm">Выручка за 30 дней</p>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={dailyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis
               dataKey="day"
-              tick={{ fill: '#6b6b8a', fontSize: 11 }}
+              tick={{ fill: '#666666', fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               interval={4}
             />
             <YAxis
-              tick={{ fill: '#6b6b8a', fontSize: 11 }}
+              tick={{ fill: '#666666', fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => `${(v/1000).toFixed(0)}к`}
               width={36}
             />
             <Tooltip
-              contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}
-              labelStyle={{ color: '#a0a0b8', fontSize: 12 }}
+              contentStyle={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
+              labelStyle={{ color: '#666666', fontSize: 12 }}
               itemStyle={{ color: '#ffffff', fontSize: 13 }}
               formatter={tooltipFormatter}
             />
@@ -170,9 +163,9 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
                 type="monotone"
                 dataKey={c.id}
                 stroke={CLUB_COLORS[i % CLUB_COLORS.length]}
-                strokeWidth={2}
+                strokeWidth={1.5}
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{ r: 3 }}
               />
             ))}
           </LineChart>
@@ -180,10 +173,9 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
       </div>
 
       {/* Heatmap */}
-      <div className="bg-surface rounded-2xl p-5 border border-white/5">
-        <p className="text-white font-semibold mb-4">Пиковые часы (сессий за 30 дней)</p>
+      <div className="border border-white/10 rounded-lg p-5">
+        <p className="text-white font-medium mb-4 text-sm">Пиковые часы (сессий за 30 дней)</p>
 
-        {/* Hour labels */}
         <div className="flex mb-1 ml-7 gap-px">
           {Array.from({ length: 24 }, (_, h) => (
             <div key={h} className="flex-1 text-center text-[8px] text-text-muted">
@@ -192,7 +184,6 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
           ))}
         </div>
 
-        {/* Grid rows */}
         <div className="space-y-px">
           {DAYS_RU.map((day, di) => (
             <div key={di} className="flex items-center gap-1">
@@ -208,7 +199,7 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
                       style={{
                         backgroundColor: count === 0
                           ? 'rgba(255,255,255,0.03)'
-                          : `rgba(74, 67, 160, ${0.15 + intensity * 0.85})`,
+                          : `rgba(255,255,255,${0.1 + intensity * 0.7})`,
                       }}
                     />
                   )
@@ -218,14 +209,13 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
           ))}
         </div>
 
-        {/* Legend */}
         <div className="flex items-center gap-2 mt-3 justify-end">
           <span className="text-text-muted text-[10px]">Меньше</span>
           {[0.1, 0.3, 0.55, 0.75, 1].map(v => (
             <div
               key={v}
               className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: `rgba(74, 67, 160, ${0.15 + v * 0.85})` }}
+              style={{ backgroundColor: `rgba(255,255,255,${0.1 + v * 0.7})` }}
             />
           ))}
           <span className="text-text-muted text-[10px]">Больше</span>
@@ -233,7 +223,7 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Сессий за 30 дней', value: filtered.length },
           {
@@ -253,7 +243,7 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
               : '—'
           },
         ].map(stat => (
-          <div key={stat.label} className="bg-surface rounded-xl p-4 border border-white/5">
+          <div key={stat.label} className="border border-white/10 rounded-lg p-4">
             <p className="text-white font-bold text-lg">{stat.value}</p>
             <p className="text-text-muted text-xs mt-0.5">{stat.label}</p>
           </div>

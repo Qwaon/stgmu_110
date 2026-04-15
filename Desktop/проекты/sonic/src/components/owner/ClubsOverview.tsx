@@ -66,7 +66,6 @@ export default function ClubsOverview({ stats: initialStats }: Props) {
     setLastRefresh(new Date())
   }, [])
 
-  // Auto-refresh every 60 seconds
   useEffect(() => {
     const t = setInterval(refetch, 60_000)
     return () => clearInterval(t)
@@ -74,24 +73,22 @@ export default function ClubsOverview({ stats: initialStats }: Props) {
 
   return (
     <div>
-      {/* Header row */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-white font-bold text-xl">Обзор клубов</h1>
+        <h1 className="text-white font-semibold text-lg tracking-wide">Обзор клубов</h1>
         <div className="flex items-center gap-3">
           <span className="text-text-muted text-xs">
-            Обновлено в {lastRefresh.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            {lastRefresh.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
           </span>
           <button
             onClick={refetch}
-            className="bg-surface-2 hover:bg-surface-3 text-text-muted hover:text-white text-xs px-3 py-1.5 rounded-lg border border-white/5 transition-colors"
+            className="border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
           >
-            ↻ Обновить
+            Обновить
           </button>
         </div>
       </div>
 
-      {/* Two clubs side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {stats.map(s => (
           <ClubCard key={s.club.id} stat={s} />
         ))}
@@ -112,24 +109,23 @@ function ClubCard({ stat: { club, rooms, sessions, activeSessions } }: { stat: C
   const booked = rooms.filter(r => r.status === 'booked').length
 
   return (
-    <div className="bg-surface rounded-2xl p-5 border border-white/5">
-      {/* Club header */}
-      <div className="mb-5">
-        <h2 className="text-white font-bold text-lg">{club.name}</h2>
+    <div className="border border-white/10 rounded-lg p-5">
+      <div className="mb-4">
+        <h2 className="text-white font-semibold text-base">{club.name}</h2>
         {club.address && <p className="text-text-muted text-xs mt-0.5">{club.address}</p>}
       </div>
 
-      {/* Room status strip */}
-      <div className="flex gap-3 mb-5">
-        <RoomPill label="Занято"    value={busy}   color="text-red-400"    bg="bg-red-400/10"    />
-        <RoomPill label="Свободно"  value={free}   color="text-green-400"  bg="bg-green-400/10"  />
-        <RoomPill label="Забронир." value={booked} color="text-yellow-400" bg="bg-yellow-400/10" />
-        <RoomPill label="Активных"  value={activeSessions.length} color="text-accent-light" bg="bg-accent/10" />
+      {/* Room status */}
+      <div className="flex gap-2 mb-4">
+        <RoomPill label="Занято"    value={busy}   color="text-status-busy"   border="border-status-busy/30"   />
+        <RoomPill label="Свободно"  value={free}   color="text-status-free"   border="border-status-free/30"   />
+        <RoomPill label="Забронир." value={booked} color="text-status-booked" border="border-status-booked/30" />
+        <RoomPill label="Активных"  value={activeSessions.length} color="text-white" border="border-white/20" />
       </div>
 
       {/* Revenue */}
-      <div className="bg-surface-2 rounded-xl p-4 mb-4">
-        <p className="text-text-muted text-xs font-semibold uppercase tracking-wide mb-3">Выручка</p>
+      <div className="border border-white/10 rounded-lg p-4 mb-3">
+        <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Выручка</p>
         <div className="grid grid-cols-3 gap-3">
           <RevenueBlock label="Сегодня" amount={todayRevenue} />
           <RevenueBlock label="Неделя"  amount={weekRevenue} />
@@ -138,7 +134,7 @@ function ClubCard({ stat: { club, rooms, sessions, activeSessions } }: { stat: C
       </div>
 
       {/* Session stats */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <StatBlock label="Сессий сегодня" value={String(countToday)} />
         <StatBlock label="Средняя длит."  value={avg ? `${avg} мин` : '—'} />
         <StatBlock label="Тариф"          value={`${club.hourly_rate} ₽/ч`} />
@@ -147,10 +143,10 @@ function ClubCard({ stat: { club, rooms, sessions, activeSessions } }: { stat: C
   )
 }
 
-function RoomPill({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
+function RoomPill({ label, value, color, border }: { label: string; value: number; color: string; border: string }) {
   return (
-    <div className={`${bg} rounded-xl px-3 py-2 flex-1 text-center`}>
-      <p className={`${color} font-black text-lg leading-none`}>{value}</p>
+    <div className={`border ${border} rounded-lg px-2.5 py-2 flex-1 text-center`}>
+      <p className={`${color} font-bold text-lg leading-none`}>{value}</p>
       <p className="text-text-muted text-[10px] mt-0.5">{label}</p>
     </div>
   )
@@ -159,7 +155,7 @@ function RoomPill({ label, value, color, bg }: { label: string; value: number; c
 function RevenueBlock({ label, amount }: { label: string; amount: number }) {
   return (
     <div className="text-center">
-      <p className="text-white font-bold text-base leading-tight">{Math.round(amount).toLocaleString('ru-RU')} ₽</p>
+      <p className="text-white font-semibold text-base leading-tight">{Math.round(amount).toLocaleString('ru-RU')} ₽</p>
       <p className="text-text-muted text-[10px] mt-0.5">{label}</p>
     </div>
   )
@@ -167,8 +163,8 @@ function RevenueBlock({ label, amount }: { label: string; amount: number }) {
 
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface-2 rounded-xl px-3 py-2 flex-1 text-center">
-      <p className="text-white font-bold text-sm">{value}</p>
+    <div className="border border-white/10 rounded-lg px-2.5 py-2 flex-1 text-center">
+      <p className="text-white font-semibold text-sm">{value}</p>
       <p className="text-text-muted text-[10px] mt-0.5">{label}</p>
     </div>
   )
