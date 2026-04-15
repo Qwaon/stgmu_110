@@ -38,7 +38,7 @@ create table if not exists sessions (
   id                 uuid primary key default uuid_generate_v4(),
   room_id            uuid not null references rooms(id) on delete restrict,
   club_id            uuid not null references clubs(id) on delete restrict,
-  client_name        text not null,
+  client_name        text,
   started_at         timestamptz not null default now(),
   ended_at           timestamptz,
   paused_at          timestamptz,
@@ -64,10 +64,10 @@ create table if not exists bookings (
   id          uuid primary key default uuid_generate_v4(),
   club_id     uuid not null references clubs(id) on delete cascade,
   room_id     uuid not null references rooms(id) on delete cascade,
-  client_name text not null,
+  client_name text,
   phone       text,
   starts_at   timestamptz not null,
-  ends_at     timestamptz not null,
+  ends_at     timestamptz,
   notes       text,
   status      text not null default 'active'
     check (status in ('active', 'completed', 'cancelled')),
@@ -180,12 +180,22 @@ insert into rooms (club_id, name, type) values
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 1', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 2', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 3', 'standard'),
-  ('aaaabbbb-0000-0000-0000-000000000001', 'VIP',    'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 4', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 5', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 6', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 7', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 8', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000002', 'Room 1', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000002', 'Room 2', 'standard'),
-  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP',    'vip'),
-  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 4', 'standard')
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 3', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 4', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 5', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 6', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 7', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 8', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 1', 'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 2', 'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 3', 'vip')
 on conflict do nothing;
 
 
