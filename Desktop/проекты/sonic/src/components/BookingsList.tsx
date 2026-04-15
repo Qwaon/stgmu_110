@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cancelBooking, checkInBooking } from '@/app/dashboard/bookings/actions'
 import CreateBookingModal from './CreateBookingModal'
 import type { Booking, Room } from '@/lib/types'
+import { IconCalendar, IconPlus } from './icons'
 
 interface Props {
   initialBookings: Booking[]
@@ -19,10 +20,6 @@ function formatTime(iso: string) {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
-}
-
-function dayKey(iso: string) {
-  return iso.slice(0, 10) // YYYY-MM-DD in UTC; good enough for grouping
 }
 
 function localDateKey(iso: string) {
@@ -48,7 +45,7 @@ function groupLabel(dateKey: string): string {
   const tomorrow = tomorrowKey()
   if (dateKey === today)    return 'Сегодня'
   if (dateKey === tomorrow) return 'Завтра'
-  return formatDate(dateKey + 'T12:00:00') // local noon → readable date
+  return formatDate(dateKey + 'T12:00:00')
 }
 
 export default function BookingsList({ initialBookings, rooms, clubId }: Props) {
@@ -98,19 +95,19 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
     if (bookings.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="text-4xl">📅</div>
+          <IconCalendar className="text-text-muted w-8 h-8" />
           <p className="text-text-muted text-sm">Нет активных броней</p>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
+            className="border border-white/20 hover:border-white/40 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors flex items-center gap-1.5"
           >
-            + Создать бронь
+            <IconPlus />
+            Создать бронь
           </button>
         </div>
       )
     }
 
-    // Group by local date of starts_at
     const grouped = new Map<string, Booking[]>()
     for (const b of bookings) {
       const key = localDateKey(b.starts_at)
@@ -123,10 +120,10 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
       <div className="space-y-6">
         {sortedKeys.map(key => (
           <section key={key}>
-            <p className="text-text-muted text-xs font-semibold uppercase tracking-wide mb-3">
+            <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">
               {groupLabel(key)}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {grouped.get(key)!.map(b => (
                 <BookingCard
                   key={b.id}
@@ -163,43 +160,39 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
               <button
                 key={key}
                 onClick={() => setSelectedDay(key)}
-                className={`flex-shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
                   selectedDay === key
-                    ? 'bg-accent text-white'
-                    : 'bg-surface-2 text-text-muted hover:text-white border border-white/5'
+                    ? 'border-white/40 text-white'
+                    : 'border-white/10 text-text-muted hover:text-white hover:border-white/20'
                 }`}
               >
                 <span>{label}</span>
                 {count > 0 && (
-                  <span className={`ml-1.5 text-xs rounded-full px-1.5 py-0.5 ${
-                    selectedDay === key ? 'bg-white/20' : 'bg-accent/30 text-accent-light'
-                  }`}>{count}</span>
+                  <span className="ml-1.5 text-xs text-text-muted">({count})</span>
                 )}
               </button>
             )
           })}
         </div>
 
-        {/* Room timeline for selected day */}
         {dayBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
             <p className="text-text-muted text-sm">Броней нет</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Group by room */}
             {rooms.map(room => {
               const roomBookings = dayBookings.filter(b => b.room_id === room.id)
               if (roomBookings.length === 0) return null
               return (
-                <div key={room.id} className="bg-surface rounded-xl p-4 border border-white/5">
+                <div key={room.id} className="border border-white/10 rounded-lg p-4">
                   <p className="text-white font-semibold text-sm mb-3">
                     {room.name}
                     {room.type === 'vip' && (
-                      <span className="ml-2 text-[10px] font-bold text-accent-light bg-accent/20 px-1.5 py-0.5 rounded uppercase">VIP</span>
+                      <span className="ml-2 text-[9px] font-bold tracking-widest text-white/50 border border-white/20 px-1 py-0.5 rounded uppercase">VIP</span>
                     )}
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {roomBookings.map(b => (
                       <BookingCard
                         key={b.id}
@@ -225,13 +218,16 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
     <>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex gap-1 bg-surface rounded-xl p-1 border border-white/5">
+        {/* Tab switcher */}
+        <div className="flex border-b border-white/10">
           {([['list', 'Список'], ['days', 'По дням']] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === t ? 'bg-accent text-white' : 'text-text-muted hover:text-white'
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b -mb-px ${
+                tab === t
+                  ? 'text-white border-white'
+                  : 'text-text-muted hover:text-white border-transparent'
               }`}
             >
               {label}
@@ -240,9 +236,10 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+          className="border border-white/20 hover:border-white/40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
         >
-          + Новая бронь
+          <IconPlus />
+          Новая бронь
         </button>
       </div>
 
@@ -271,11 +268,11 @@ interface CardProps {
 
 function BookingCard({ booking: b, roomName, loading, onCheckIn, onCancel, compact }: CardProps) {
   return (
-    <div className="bg-surface-2 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3">
+    <div className="border border-white/10 rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
       {/* Time badge */}
       <div className="text-center flex-shrink-0 min-w-[52px]">
-        <p className="text-white font-bold text-sm leading-tight">{formatTime(b.starts_at)}</p>
-        <p className="text-text-muted text-[10px]">{formatTime(b.ends_at)}</p>
+        <p className="text-white font-semibold text-sm leading-tight font-mono">{formatTime(b.starts_at)}</p>
+        <p className="text-text-muted text-[10px] font-mono">{formatTime(b.ends_at)}</p>
       </div>
 
       {/* Info */}
@@ -292,14 +289,14 @@ function BookingCard({ booking: b, roomName, loading, onCheckIn, onCancel, compa
         <button
           onClick={onCheckIn}
           disabled={loading}
-          className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          className="border border-white/20 hover:border-white/50 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
         >
           Заселить
         </button>
         <button
           onClick={onCancel}
           disabled={loading}
-          className="bg-surface-3 hover:bg-red-600/30 disabled:opacity-50 text-text-muted hover:text-red-400 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          className="border border-white/10 hover:border-status-busy/40 disabled:opacity-40 text-text-muted hover:text-status-busy text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
         >
           Отмена
         </button>
