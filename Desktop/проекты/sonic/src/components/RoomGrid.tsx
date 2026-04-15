@@ -7,6 +7,7 @@ import RoomCard from './RoomCard'
 import UndoToast from './UndoToast'
 import SessionExpiredDialog from './SessionExpiredDialog'
 import ShiftSummaryModal from './ShiftSummaryModal'
+import { IconList } from './icons'
 
 interface Props {
   initialRooms: RoomWithSession[]
@@ -134,29 +135,30 @@ export default function RoomGrid({ initialRooms, initialBookings, clubId, clubFi
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setShowSummary(true)}
-          className="bg-surface hover:bg-surface-2 border border-white/10 text-text-muted hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
+          className="border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
         >
-          📋 Сводка смены
+          <IconList className="flex-shrink-0" />
+          Сводка смены
         </button>
       </div>
 
       {/* Stats bar */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
         {[
-          { label: 'Всего',    value: rooms.length,                                        color: 'text-text-muted' },
-          { label: 'Занято',   value: rooms.filter(r => r.status === 'busy').length,       color: 'text-red-400'   },
-          { label: 'Свободно', value: rooms.filter(r => r.status === 'free').length,       color: 'text-green-400' },
-          { label: 'Брони',    value: rooms.filter(r => r.status === 'booked').length,     color: 'text-yellow-400'},
+          { label: 'Всего',    value: rooms.length,                                    color: 'text-white'          },
+          { label: 'Занято',   value: rooms.filter(r => r.status === 'busy').length,   color: 'text-status-busy'   },
+          { label: 'Свободно', value: rooms.filter(r => r.status === 'free').length,   color: 'text-status-free'   },
+          { label: 'Брони',    value: rooms.filter(r => r.status === 'booked').length, color: 'text-status-booked' },
         ].map(stat => (
-          <div key={stat.label} className="bg-surface rounded-xl px-4 py-2 border border-white/5">
-            <p className={`text-xl font-black ${stat.color}`}>{stat.value}</p>
-            <p className="text-text-muted text-xs">{stat.label}</p>
+          <div key={stat.label} className="border border-white/10 rounded-lg px-4 py-2.5">
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+            <p className="text-text-muted text-xs mt-0.5">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Room cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {rooms.map(room => (
           <RoomCard
             key={room.id}
