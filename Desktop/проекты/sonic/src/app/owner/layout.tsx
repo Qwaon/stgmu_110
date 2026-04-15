@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { LogoPlaceholder, IconLogOut } from '@/components/icons'
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -16,47 +17,43 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      {/* Header */}
-      <header className="bg-surface border-b border-white/5 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+      <header className="border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-10 bg-bg">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-            </svg>
-          </div>
+          <LogoPlaceholder className="text-white flex-shrink-0" />
           <div>
-            <h1 className="text-white font-bold text-sm leading-tight">PS Club</h1>
-            <p className="text-accent-light text-xs font-semibold">Owner Panel</p>
+            <h1 className="text-white font-bold text-sm tracking-[0.1em] uppercase leading-tight">Sonic</h1>
+            <p className="text-text-muted text-xs">Owner Panel</p>
           </div>
         </div>
-
         <div className="flex items-center gap-4">
           <span className="text-text-muted text-xs hidden sm:block">{user.email}</span>
           <form action={handleSignOut}>
-            <button type="submit" className="text-text-muted hover:text-white text-xs transition-colors">
+            <button type="submit" className="text-text-muted hover:text-white text-xs transition-colors flex items-center gap-1.5">
+              <IconLogOut />
               Выйти
             </button>
           </form>
         </div>
       </header>
 
-      {/* Nav */}
-      <nav className="bg-surface border-b border-white/5 px-6">
-        <div className="flex gap-1">
-          <Link href="/owner/clubs"
-            className="px-4 py-3 text-sm font-medium text-white border-b-2 border-accent-light">
-            Клубы
-          </Link>
-          <Link href="/owner/analytics"
-            className="px-4 py-3 text-sm font-medium text-text-muted hover:text-white transition-colors border-b-2 border-transparent">
-            Аналитика
-          </Link>
+      <nav className="border-b border-white/10 px-6 bg-bg">
+        <div className="flex">
+          {[
+            { href: '/owner/clubs',     label: 'Клубы' },
+            { href: '/owner/analytics', label: 'Аналитика' },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="px-4 py-3 text-sm font-medium text-text-muted hover:text-white transition-colors border-b border-transparent hover:border-white/40"
+            >
+              {label}
+            </Link>
+          ))}
         </div>
       </nav>
 
-      <main className="flex-1 p-6">
-        {children}
-      </main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   )
 }
