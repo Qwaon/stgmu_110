@@ -11,7 +11,9 @@ export default async function TariffsPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('users').select('club_id').eq('id', user.id).single()
+    .from('users').select('club_id, role').eq('id', user.id).single()
+
+  if (profile?.role !== 'owner') redirect('/dashboard/rooms')
 
   if (!profile?.club_id) {
     return (

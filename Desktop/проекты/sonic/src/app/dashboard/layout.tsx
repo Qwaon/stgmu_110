@@ -10,11 +10,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from('users')
-    .select('clubs(name)')
+    .select('role, clubs(name)')
     .eq('id', user.id)
     .single()
 
   const clubName = (profile?.clubs as unknown as { name: string } | null)?.name ?? 'Клуб'
+  const isOwner  = profile?.role === 'owner'
 
   async function handleSignOut() {
     'use server'
@@ -49,8 +50,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {[
             { href: '/dashboard/rooms',    label: 'Комнаты' },
             { href: '/dashboard/bookings', label: 'Бронирования' },
-            { href: '/dashboard/menu',     label: 'Меню' },
-            { href: '/dashboard/tariffs',  label: 'Тарифы' },
+            ...(isOwner ? [
+              { href: '/dashboard/menu',    label: 'Меню' },
+              { href: '/dashboard/tariffs', label: 'Тарифы' },
+            ] : []),
           ].map(({ href, label }) => (
             <Link
               key={href}

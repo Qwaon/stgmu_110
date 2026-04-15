@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createMenuItem, deleteMenuItem, togglePin } from './actions'
 import type { MenuItem } from '@/lib/types'
@@ -10,9 +11,11 @@ export default async function MenuPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('club_id')
+    .select('club_id, role')
     .eq('id', user!.id)
     .single()
+
+  if (profile?.role !== 'owner') redirect('/dashboard/rooms')
 
   if (!profile?.club_id) {
     return (
