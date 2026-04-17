@@ -1,7 +1,6 @@
 'use server'
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { calculateElapsedMs, calculateSessionMinutes, calculateSessionAmount } from '@/lib/session'
+import { assertUUID } from '@/lib/validation'
 import type { Order } from '@/lib/types'
 
 async function getAuthContext() {
@@ -11,129 +10,93 @@ async function getAuthContext() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('club_id')
+    .select('role, club_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.club_id) throw new Error('No club assigned')
+  if (!profile) throw new Error('Unauthorized')
+  if (profile.role !== 'admin') throw new Error('Forbidden: admin role required')
+  if (!profile.club_id) throw new Error('No club assigned')
   return { supabase, clubId: profile.club_id as string }
 }
 
+function throwActionError(message: string | undefined, fallback: string): never {
+  throw new Error(message || fallback)
+}
+
 export async function startSession(roomId: string) {
-  const { supabase, clubId } = await getAuthContext()
-
-  const { error: sessionErr } = await supabase
-    .from('sessions')
-    .insert({
-      room_id: roomId,
-      club_id: clubId,
-      client_name: null,
-      status: 'active',
-    })
-
-  if (sessionErr) throw new Error(sessionErr.message)
-
-  const { error: roomErr } = await supabase
-    .from('rooms')
-    .update({ status: 'busy' })
-    .eq('id', roomId)
-    .eq('club_id', clubId)
-
-  if (roomErr) throw new Error(roomErr.message)
-  revalidatePath('/dashboard/rooms')
+  assertUUID(roomId, 'roomId')
+  const { supabase } = await getAuthContext()
+  const { error } = await supabase.rpc('start_session_atomic', { p_room_id: roomId })
+  if (error) throwActionError(error.message, 'Failed to start session')
 }
 
 export async function endSession(
   sessionId: string,
   roomId: string,
-  _legacyHourlyRate?: number   // kept for compat, rates now read from room
 ): Promise<{ minutes: number; sessionAmount: number; ordersTotal: number; total: number }> {
-  const { supabase, clubId } = await getAuthContext()
+  assertUUID(sessionId, 'sessionId')
+  assertUUID(roomId, 'roomId')
+  const { supabase } = await getAuthContext()
 
-  const [{ data: session }, { data: room }, { data: club }] = await Promise.all([
-    supabase.from('sessions').select('*, orders(*)').eq('id', sessionId).eq('club_id', clubId).single(),
-    supabase.from('rooms').select('first_hour_rate, subsequent_rate, hourly_rate').eq('id', roomId).single(),
-    supabase.from('clubs').select('hourly_rate').eq('id', clubId).single(),
-  ])
+  const { data: result, error } = await supabase.rpc('end_session_atomic', {
+    p_session_id: sessionId,
+    p_room_id: roomId,
+  })
+  if (error) throwActionError(error.message, 'Failed to end session')
 
-  if (!session) throw new Error('Session not found')
-
-  const fallback      = club?.hourly_rate ?? 500
-  const firstHourRate = room?.first_hour_rate ?? fallback
-  const subsequentRate = room?.subsequent_rate ?? fallback
-
-  const elapsedMs = calculateElapsedMs(
-    session.started_at,
-    session.paused_at,
-    session.paused_duration_ms
-  )
-  const minutes       = calculateSessionMinutes(elapsedMs)
-  const sessionAmount = calculateSessionAmount(minutes, firstHourRate, subsequentRate)
-  const ordersTotal   = (session.orders as Order[]).reduce(
-    (sum, o) => sum + o.price * o.quantity, 0
-  )
-  const total = Math.round((sessionAmount + ordersTotal) * 100) / 100
-
-  const { error } = await supabase
-    .from('sessions')
-    .update({
-      ended_at:      new Date().toISOString(),
-      status:        'completed',
-      total_minutes: minutes,
-      total_amount:  total,
-    })
-    .eq('id', sessionId)
-
-  if (error) throw new Error(error.message)
-
-  await supabase
-    .from('rooms')
-    .update({ status: 'free' })
-    .eq('id', roomId)
-    .eq('club_id', clubId)
-
-  revalidatePath('/dashboard/rooms')
-  return { minutes, sessionAmount, ordersTotal, total }
+  const r = result as { minutes: number; sessionAmount: number; ordersTotal: number; total: number }
+  return {
+    minutes: r.minutes,
+    sessionAmount: r.sessionAmount,
+    ordersTotal: r.ordersTotal,
+    total: r.total,
+  }
 }
 
 export async function undoEndSession(sessionId: string, roomId: string) {
-  const { supabase, clubId } = await getAuthContext()
-
-  await supabase
-    .from('sessions')
-    .update({ ended_at: null, status: 'active', total_minutes: null, total_amount: null })
-    .eq('id', sessionId)
-    .eq('club_id', clubId)
-
-  await supabase
-    .from('rooms')
-    .update({ status: 'busy' })
-    .eq('id', roomId)
-    .eq('club_id', clubId)
-
-  revalidatePath('/dashboard/rooms')
+  assertUUID(sessionId, 'sessionId')
+  assertUUID(roomId, 'roomId')
+  const { supabase } = await getAuthContext()
+  const { error } = await supabase.rpc('undo_end_session_atomic', {
+    p_session_id: sessionId,
+    p_room_id: roomId,
+  })
+  if (error) throwActionError(error.message, 'Failed to restore session')
 }
 
 export async function pauseSession(sessionId: string) {
-  const { supabase, clubId } = await getAuthContext()
+  assertUUID(sessionId, 'sessionId')
+  const { supabase } = await getAuthContext()
 
-  const { error } = await supabase
-    .from('sessions')
-    .update({ status: 'paused', paused_at: new Date().toISOString() })
-    .eq('id', sessionId)
-    .eq('club_id', clubId)
-    .eq('status', 'active')
-
-  if (error) throw new Error(error.message)
-  revalidatePath('/dashboard/rooms')
+  const { error } = await supabase.rpc('pause_session_atomic', {
+    p_session_id: sessionId,
+  })
+  if (error) throwActionError(error.message, 'Failed to pause session')
 }
 
 export async function addOrder(
   sessionId: string,
   menuItemId: string,
   quantity: number
-): Promise<void> {
+): Promise<Order> {
+  assertUUID(sessionId, 'sessionId')
+  assertUUID(menuItemId, 'menuItemId')
   const { supabase, clubId } = await getAuthContext()
+
+  if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 99) {
+    throw new Error('Quantity must be between 1 and 99')
+  }
+
+  const { data: session, error: sessionErr } = await supabase
+    .from('sessions')
+    .select('id, status')
+    .eq('id', sessionId)
+    .eq('club_id', clubId)
+    .single()
+
+  if (sessionErr || !session) throw new Error('Session not found')
+  if (!['active', 'paused'].includes(session.status)) throw new Error('Cannot add orders to a completed session')
 
   // Снапшот цены и названия на момент заказа
   const { data: item, error: itemErr } = await supabase
@@ -145,7 +108,7 @@ export async function addOrder(
 
   if (itemErr || !item) throw new Error('Menu item not found')
 
-  const { error: orderErr } = await supabase
+  const { data: insertedOrder, error: orderErr } = await supabase
     .from('orders')
     .insert({
       session_id: sessionId,
@@ -154,35 +117,24 @@ export async function addOrder(
       price:      item.price,
       quantity,
     })
+    .select('*')
+    .single()
 
-  if (orderErr) throw new Error(orderErr.message)
+  if (orderErr) throw new Error('Не удалось добавить заказ')
 
   // Атомарный инкремент счётчика популярности
-  await supabase.rpc('increment_order_count', { item_id: menuItemId, amount: quantity })
+  const { error: incError } = await supabase.rpc('increment_order_count', { item_id: menuItemId, amount: quantity })
+  if (incError) console.error('increment_order_count failed:', incError.message)
 
-  revalidatePath('/dashboard/rooms')
+  return insertedOrder as Order
 }
 
 export async function resumeSession(sessionId: string) {
-  const { supabase, clubId } = await getAuthContext()
+  assertUUID(sessionId, 'sessionId')
+  const { supabase } = await getAuthContext()
 
-  const { data: session } = await supabase
-    .from('sessions')
-    .select('paused_at, paused_duration_ms')
-    .eq('id', sessionId)
-    .eq('club_id', clubId)
-    .single()
-
-  if (!session?.paused_at) throw new Error('Session is not paused')
-
-  const additionalMs       = Date.now() - new Date(session.paused_at).getTime()
-  const newPausedDurationMs = session.paused_duration_ms + additionalMs
-
-  const { error } = await supabase
-    .from('sessions')
-    .update({ status: 'active', paused_at: null, paused_duration_ms: newPausedDurationMs })
-    .eq('id', sessionId)
-
-  if (error) throw new Error(error.message)
-  revalidatePath('/dashboard/rooms')
+  const { error } = await supabase.rpc('resume_session_atomic', {
+    p_session_id: sessionId,
+  })
+  if (error) throwActionError(error.message, 'Failed to resume session')
 }

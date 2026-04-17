@@ -37,12 +37,22 @@ INSERT INTO rooms (club_id, name, type) VALUES
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 1', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 2', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 3', 'standard'),
-  ('aaaabbbb-0000-0000-0000-000000000001', 'VIP',    'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 4', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000001', 'Room 5', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 6', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 7', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000001', 'Room 8', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000002', 'Room 1', 'standard'),
   ('aaaabbbb-0000-0000-0000-000000000002', 'Room 2', 'standard'),
-  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP',    'vip'),
-  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 4', 'standard');
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 3', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 4', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 5', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 6', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 7', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'Room 8', 'standard'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 1',  'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 2',  'vip'),
+  ('aaaabbbb-0000-0000-0000-000000000002', 'VIP 3',  'vip');
 ```
 
 ---

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { RoomWithSession, Booking } from '@/lib/types'
+import type { RoomWithSession, Booking, MenuItem, ActiveSession, Room } from '@/lib/types'
 import RoomGrid from '@/components/RoomGrid'
 
 export const dynamic = 'force-dynamic'
@@ -25,63 +25,41 @@ export default async function RoomsPage() {
   }
 
   const clubId             = profile.club_id as string
-  const clubRaw            = profile.clubs as unknown as { hourly_rate: number } | null
-  const clubFirstHourRate  = clubRaw?.hourly_rate ?? 250
-  const clubSubsequentRate = clubFirstHourRate > 250 ? 300 : 200 // VIP fallback heuristic
+  const { data: dashboardData, error } = await supabase.rpc('get_rooms_dashboard_payload')
+  const payload = dashboardData as {
+    club_id: string | null
+    club_hourly_rate: number | null
+    rooms: Room[]
+    sessions: ActiveSession[]
+    bookings: Booking[]
+    menu_items: MenuItem[]
+  } | null
 
-  // Fetch rooms with their active/paused session + session orders
-  const { data: rooms, error } = await supabase
-    .from('rooms')
-    .select(`
-      *,
-      sessions!inner(
-        id, client_name, started_at, ended_at, paused_at,
-        paused_duration_ms, total_minutes, total_amount, status, scheduled_end_at,
-        orders(id, item_name, price, quantity, created_at, session_id, club_id)
-      )
-    `)
-    .eq('club_id', clubId)
-    .in('sessions.status', ['active', 'paused'])
-    .order('name')
+  const clubHourlyRate     = payload?.club_hourly_rate ?? 500
+  const clubFirstHourRate  = clubHourlyRate
+  const clubSubsequentRate = clubHourlyRate
 
-  // Also fetch rooms without active sessions (free rooms won't appear with !inner join)
-  const { data: allRooms } = await supabase
-    .from('rooms')
-    .select('*')
-    .eq('club_id', clubId)
-    .order('name')
-
-  if (error) {
-    console.error('Sessions fetch error:', error)
-  }
+  if (error) console.error('Sessions fetch error:', error)
 
   // Build a map of room_id → active session
   const sessionByRoom = new Map<string, RoomWithSession['active_session']>()
-  for (const row of rooms ?? []) {
-    const session = Array.isArray(row.sessions) ? row.sessions[0] : null
-    if (session) sessionByRoom.set(row.id, { ...session, orders: session.orders ?? [] })
+  for (const session of payload?.sessions ?? []) {
+    sessionByRoom.set(session.room_id, { ...session, orders: session.orders ?? [] })
   }
 
-  const roomsWithSession: RoomWithSession[] = (allRooms ?? []).map(room => ({
+  const roomsWithSession: RoomWithSession[] = (payload?.rooms ?? []).map(room => ({
     ...room,
     active_session: sessionByRoom.get(room.id) ?? null,
   }))
 
-  // Fetch active bookings that haven't ended yet (for room badges)
-  const { data: bookingsData } = await supabase
-    .from('bookings')
-    .select('*')
-    .eq('club_id', clubId)
-    .eq('status', 'active')
-    .gte('ends_at', new Date().toISOString())
-    .order('starts_at')
-
-  const bookings: Booking[] = bookingsData ?? []
+  const bookings: Booking[] = payload?.bookings ?? []
+  const menuItems: MenuItem[] = payload?.menu_items ?? []
 
   return (
     <RoomGrid
       initialRooms={roomsWithSession}
       initialBookings={bookings}
+      initialMenuItems={menuItems}
       clubId={clubId}
       clubFirstHourRate={clubFirstHourRate}
       clubSubsequentRate={clubSubsequentRate}

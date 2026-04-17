@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { LogoPlaceholder, IconLogOut } from '@/components/icons'
+import LiveClock from '@/components/LiveClock'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -35,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <LiveClock />
           <span className="text-text-muted text-xs hidden sm:block truncate max-w-[200px]">{user.email}</span>
           <form action={handleSignOut}>
             <button type="submit" className="text-text-muted hover:text-white text-xs transition-colors flex items-center gap-1.5">

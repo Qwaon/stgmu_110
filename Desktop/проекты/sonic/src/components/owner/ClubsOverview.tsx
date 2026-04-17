@@ -1,68 +1,20 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { ClubStats } from '@/app/owner/clubs/page'
-import type { Room, Session } from '@/lib/types'
+import type { ClubOverviewStat } from '@/lib/types'
 
 interface Props {
-  stats: ClubStats[]
-}
-
-function startOf(period: 'day' | 'week' | 'month'): Date {
-  const d = new Date()
-  if (period === 'day') {
-    d.setHours(0, 0, 0, 0)
-  } else if (period === 'week') {
-    d.setDate(d.getDate() - 6)
-    d.setHours(0, 0, 0, 0)
-  } else {
-    d.setDate(1)
-    d.setHours(0, 0, 0, 0)
-  }
-  return d
-}
-
-function revenue(sessions: Session[], period: 'day' | 'week' | 'month'): number {
-  const from = startOf(period).getTime()
-  return sessions
-    .filter(s => s.ended_at && new Date(s.ended_at).getTime() >= from)
-    .reduce((sum, s) => sum + (s.total_amount ?? 0), 0)
-}
-
-function sessionsToday(sessions: Session[]): number {
-  const from = startOf('day').getTime()
-  return sessions.filter(s => s.ended_at && new Date(s.ended_at).getTime() >= from).length
-}
-
-function avgDuration(sessions: Session[]): number {
-  const from = startOf('day').getTime()
-  const today = sessions.filter(s => s.ended_at && new Date(s.ended_at).getTime() >= from && s.total_minutes)
-  if (today.length === 0) return 0
-  return Math.round(today.reduce((sum, s) => sum + (s.total_minutes ?? 0), 0) / today.length)
+  stats: ClubOverviewStat[]
 }
 
 export default function ClubsOverview({ stats: initialStats }: Props) {
   const [stats, setStats] = useState(initialStats)
   const [lastRefresh, setLastRefresh] = useState(new Date())
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   const refetch = useCallback(async () => {
-    const monthStart = new Date()
-    monthStart.setDate(1)
-    monthStart.setHours(0, 0, 0, 0)
-
-    const [{ data: rooms }, { data: completed }, { data: active }] = await Promise.all([
-      supabase.from('rooms').select('*'),
-      supabase.from('sessions').select('*').eq('status', 'completed').gte('ended_at', monthStart.toISOString()),
-      supabase.from('sessions').select('*').in('status', ['active', 'paused']),
-    ])
-
-    setStats(prev => prev.map(s => ({
-      ...s,
-      rooms:          (rooms ?? []).filter((r: Room) => r.club_id === s.club.id),
-      sessions:       (completed ?? []).filter((sess: Session) => sess.club_id === s.club.id),
-      activeSessions: (active ?? []).filter((sess: Session) => sess.club_id === s.club.id),
-    })))
+    const { data } = await supabaseRef.current.rpc('get_clubs_overview')
+    if (data) setStats(data as ClubOverviewStat[])
     setLastRefresh(new Date())
   }, [])
 
@@ -97,17 +49,8 @@ export default function ClubsOverview({ stats: initialStats }: Props) {
   )
 }
 
-function ClubCard({ stat: { club, rooms, sessions, activeSessions } }: { stat: ClubStats }) {
-  const todayRevenue  = revenue(sessions, 'day')
-  const weekRevenue   = revenue(sessions, 'week')
-  const monthRevenue  = revenue(sessions, 'month')
-  const countToday    = sessionsToday(sessions)
-  const avg           = avgDuration(sessions)
-
-  const free   = rooms.filter(r => r.status === 'free').length
-  const busy   = rooms.filter(r => r.status === 'busy').length
-  const booked = rooms.filter(r => r.status === 'booked').length
-
+function ClubCard({ stat }: { stat: ClubOverviewStat }) {
+  const { club, rooms, activeSessions, revenueToday, revenueWeek, revenueMonth, sessionsToday, averageDurationToday } = stat
   return (
     <div className="border border-white/10 rounded-lg p-5">
       <div className="mb-4">
@@ -117,26 +60,26 @@ function ClubCard({ stat: { club, rooms, sessions, activeSessions } }: { stat: C
 
       {/* Room status */}
       <div className="flex gap-2 mb-4">
-        <RoomPill label="Занято"    value={busy}   color="text-status-busy"   border="border-status-busy/30"   />
-        <RoomPill label="Свободно"  value={free}   color="text-status-free"   border="border-status-free/30"   />
-        <RoomPill label="Забронир." value={booked} color="text-status-booked" border="border-status-booked/30" />
-        <RoomPill label="Активных"  value={activeSessions.length} color="text-white" border="border-white/20" />
+        <RoomPill label="Занято"    value={rooms.busy}   color="text-status-busy"   border="border-status-busy/30"   />
+        <RoomPill label="Свободно"  value={rooms.free}   color="text-status-free"   border="border-status-free/30"   />
+        <RoomPill label="Забронир." value={rooms.booked} color="text-status-booked" border="border-status-booked/30" />
+        <RoomPill label="Активных"  value={activeSessions} color="text-white" border="border-white/20" />
       </div>
 
       {/* Revenue */}
       <div className="border border-white/10 rounded-lg p-4 mb-3">
         <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Выручка</p>
         <div className="grid grid-cols-3 gap-3">
-          <RevenueBlock label="Сегодня" amount={todayRevenue} />
-          <RevenueBlock label="Неделя"  amount={weekRevenue} />
-          <RevenueBlock label="Месяц"   amount={monthRevenue} />
+          <RevenueBlock label="Сегодня" amount={revenueToday} />
+          <RevenueBlock label="Неделя"  amount={revenueWeek} />
+          <RevenueBlock label="Месяц"   amount={revenueMonth} />
         </div>
       </div>
 
       {/* Session stats */}
       <div className="flex gap-2">
-        <StatBlock label="Сессий сегодня" value={String(countToday)} />
-        <StatBlock label="Средняя длит."  value={avg ? `${avg} мин` : '—'} />
+        <StatBlock label="Сессий сегодня" value={String(sessionsToday)} />
+        <StatBlock label="Средняя длит."  value={averageDurationToday ? `${averageDurationToday} мин` : '—'} />
         <StatBlock label="Тариф"          value={`${club.hourly_rate} ₽/ч`} />
       </div>
     </div>

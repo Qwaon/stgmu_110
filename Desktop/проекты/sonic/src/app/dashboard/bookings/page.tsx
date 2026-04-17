@@ -26,21 +26,21 @@ export default async function BookingsPage() {
 
   const clubId = profile.club_id as string
 
-  // Active bookings that haven't ended yet
-  const { data: bookingsData } = await supabase
-    .from('bookings')
-    .select('*')
-    .eq('club_id', clubId)
-    .eq('status', 'active')
-    .gte('ends_at', new Date().toISOString())
-    .order('starts_at')
-
-  // All rooms for the club (for the create modal + day view)
-  const { data: roomsData } = await supabase
-    .from('rooms')
-    .select('*')
-    .eq('club_id', clubId)
-    .order('name')
+  // Fetch bookings and rooms in parallel
+  const [{ data: bookingsData }, { data: roomsData }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('status', 'active')
+      .or(`ends_at.gte.${new Date().toISOString()},ends_at.is.null`)
+      .order('starts_at'),
+    supabase
+      .from('rooms')
+      .select('*')
+      .eq('club_id', clubId)
+      .order('name'),
+  ])
 
   const bookings: Booking[] = bookingsData ?? []
   const rooms: Room[]       = roomsData ?? []

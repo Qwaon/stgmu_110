@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelBooking, checkInBooking } from '@/app/dashboard/bookings/actions'
 import CreateBookingModal from './CreateBookingModal'
@@ -56,18 +56,21 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
   const [selectedDay,  setSelectedDay] = useState(todayKey())
   const supabase = createClient()
 
-  const refetch = useCallback(async () => {
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const { data } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('club_id', clubId)
-      .eq('status', 'active')
-      .gte('starts_at', todayStart.toISOString())
-      .order('starts_at')
-    setBookings(data ?? [])
-  }, [clubId])
+  function shouldShowBooking(booking: Booking) {
+    return booking.status === 'active' && new Date(booking.starts_at).getTime() >= startOfToday().getTime()
+  }
+
+  function upsertBooking(nextBooking: Booking) {
+    setBookings(prev => {
+      const merged = prev.filter(booking => booking.id !== nextBooking.id)
+      if (!shouldShowBooking(nextBooking)) return merged
+      return [...merged, nextBooking].sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    })
+  }
+
+  function removeBooking(bookingId: string) {
+    setBookings(prev => prev.filter(booking => booking.id !== bookingId))
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -75,22 +78,56 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'bookings',
         filter: `club_id=eq.${clubId}`,
-      }, () => refetch())
+      }, payload => {
+        const nextBooking = payload.new as Booking
+        const prevBooking = payload.old as Booking
+
+        if (payload.eventType === 'DELETE') {
+          removeBooking(prevBooking.id)
+          return
+        }
+
+        upsertBooking(nextBooking)
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [clubId, refetch])
+  }, [clubId])
 
   async function handleCheckIn(id: string) {
     setLoadingId(id)
-    try { await checkInBooking(id) } finally { setLoadingId(null) }
+    removeBooking(id)
+    try {
+      await checkInBooking(id)
+    } catch {
+      const original = bookings.find(booking => booking.id === id)
+      if (original) upsertBooking(original)
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   async function handleCancel(id: string) {
     setLoadingId(id)
-    try { await cancelBooking(id) } finally { setLoadingId(null) }
+    removeBooking(id)
+    try {
+      await cancelBooking(id)
+    } catch {
+      const original = bookings.find(booking => booking.id === id)
+      if (original) upsertBooking(original)
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   const roomName = (id: string) => rooms.find(r => r.id === id)?.name ?? '—'
+  const bookingCountByDay = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const booking of bookings) {
+      const key = localDateKey(booking.starts_at)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [bookings])
 
   // ── TAB: LIST ──────────────────────────────────────────────────────────
   function renderList() {
@@ -157,7 +194,7 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
             const key = localDateKey(d.toISOString())
             const label = i === 0 ? 'Сегодня' : i === 1 ? 'Завтра'
               : d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric' })
-            const count = bookings.filter(b => localDateKey(b.starts_at) === key).length
+            const count = bookingCountByDay.get(key) ?? 0
             return (
               <button
                 key={key}
@@ -250,11 +287,18 @@ export default function BookingsList({ initialBookings, rooms, clubId }: Props) 
       {showCreate && (
         <CreateBookingModal
           rooms={rooms}
+          onCreated={upsertBooking}
           onClose={() => setShowCreate(false)}
         />
       )}
     </>
   )
+}
+
+function startOfToday() {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  return todayStart
 }
 
 // ── BookingCard ────────────────────────────────────────────────────────────

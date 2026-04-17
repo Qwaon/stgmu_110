@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { endSession } from '@/app/dashboard/rooms/actions'
 import { calculateElapsedMs, calculateSessionMinutes, calculateSessionAmount, formatDuration } from '@/lib/session'
 import type { Room, ActiveSession } from '@/lib/types'
@@ -11,26 +11,33 @@ interface Props {
   firstHourRate: number
   subsequentRate: number
   onClose: () => void
-  onEnded?: (sessionId: string, roomId: string) => void
+  onEnded?: (sessionId: string, roomId: string) => void | Promise<void>
 }
 
 export default function EndSessionModal({ room, session, firstHourRate, subsequentRate, onClose, onEnded }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [tick, setTick]       = useState(0)
 
-  // Preview calculation at time of modal open
+  // Recalculate every 10s so the preview stays fresh while modal is open
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 10_000)
+    return () => clearInterval(id)
+  }, [])
+
   const elapsedMs     = calculateElapsedMs(session.started_at, session.paused_at, session.paused_duration_ms)
   const minutes       = calculateSessionMinutes(elapsedMs)
   const sessionAmount = calculateSessionAmount(minutes, firstHourRate, subsequentRate)
   const ordersTotal   = session.orders.reduce((sum, o) => sum + o.price * o.quantity, 0)
   const total         = Math.round((sessionAmount + ordersTotal) * 100) / 100
+  void tick // used to trigger recalculation
 
   async function handleEnd() {
     setLoading(true)
     setError(null)
     try {
       await endSession(session.id, room.id)
-      onEnded?.(session.id, room.id)
+      await onEnded?.(session.id, room.id)
       onClose()
     } catch {
       setError('Ошибка при завершении. Попробуйте снова.')

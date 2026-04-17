@@ -1,11 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { updateRoomTariff } from '@/app/dashboard/tariffs/actions'
 import type { Room } from '@/lib/types'
 import { IconCheck } from './icons'
 
 interface Props {
   rooms: Room[]
+  clubId?: string
 }
 
 interface RoomDraft {
@@ -16,16 +17,22 @@ interface RoomDraft {
   error: string | null
 }
 
-export default function TariffSettings({ rooms }: Props) {
-  const [drafts, setDrafts] = useState<Record<string, RoomDraft>>(
-    Object.fromEntries(rooms.map(r => [r.id, {
-      firstHourRate:  String(r.first_hour_rate  ?? (r.type === 'vip' ? 350 : 250)),
-      subsequentRate: String(r.subsequent_rate  ?? (r.type === 'vip' ? 300 : 200)),
-      saving: false,
-      saved: false,
-      error: null,
-    }]))
-  )
+function buildDrafts(rooms: Room[]): Record<string, RoomDraft> {
+  return Object.fromEntries(rooms.map(r => [r.id, {
+    firstHourRate: String(r.first_hour_rate ?? (r.type === 'vip' ? 350 : 250)),
+    subsequentRate: String(r.subsequent_rate ?? (r.type === 'vip' ? 300 : 200)),
+    saving: false,
+    saved: false,
+    error: null,
+  }]))
+}
+
+export default function TariffSettings({ rooms, clubId }: Props) {
+  const [drafts, setDrafts] = useState<Record<string, RoomDraft>>(() => buildDrafts(rooms))
+
+  useEffect(() => {
+    setDrafts(buildDrafts(rooms))
+  }, [rooms])
 
   function update(id: string, field: 'firstHourRate' | 'subsequentRate', value: string) {
     setDrafts(prev => ({ ...prev, [id]: { ...prev[id], [field]: value, saved: false, error: null } }))
@@ -43,7 +50,7 @@ export default function TariffSettings({ rooms }: Props) {
 
     setDrafts(prev => ({ ...prev, [room.id]: { ...prev[room.id], saving: true, error: null } }))
     try {
-      await updateRoomTariff(room.id, first, sub)
+      await updateRoomTariff(room.id, first, sub, clubId)
       setDrafts(prev => ({ ...prev, [room.id]: { ...prev[room.id], saving: false, saved: true } }))
     } catch {
       setDrafts(prev => ({ ...prev, [room.id]: { ...prev[room.id], saving: false, error: 'Ошибка сохранения' } }))
@@ -58,6 +65,7 @@ export default function TariffSettings({ rooms }: Props) {
 
       {rooms.map(room => {
         const d = drafts[room.id]
+        if (!d) return null
         return (
           <div key={room.id} className="border border-white/10 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">

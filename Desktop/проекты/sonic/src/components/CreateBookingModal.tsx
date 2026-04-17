@@ -1,12 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { createBooking } from '@/app/dashboard/bookings/actions'
-import type { Room } from '@/lib/types'
+import type { Booking, Room } from '@/lib/types'
 import { IconX } from './icons'
 
 interface Props {
   rooms: Room[]
   onClose: () => void
+  onCreated?: (booking: Booking) => void
 }
 
 function todayLocal() {
@@ -21,7 +22,7 @@ function toISOLocal(dateStr: string, timeStr: string): string {
 const inputCls = "w-full bg-transparent border border-white/15 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/50 transition-colors placeholder:text-text-muted"
 const labelCls = "text-text-muted text-xs mb-1 block tracking-wide uppercase"
 
-export default function CreateBookingModal({ rooms, onClose }: Props) {
+export default function CreateBookingModal({ rooms, onClose, onCreated }: Props) {
   const today = todayLocal()
 
   const [roomId,     setRoomId]     = useState(rooms[0]?.id ?? '')
@@ -56,6 +57,9 @@ export default function CreateBookingModal({ rooms, onClose }: Props) {
       if (result.error) {
         setError(result.error)
         setLoading(false)
+      } else if (result.booking) {
+        onCreated?.(result.booking)
+        onClose()
       } else {
         onClose()
       }

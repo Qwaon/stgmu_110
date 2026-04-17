@@ -8,6 +8,14 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'owner') redirect('/dashboard/rooms')
+
   async function handleSignOut() {
     'use server'
     const supabase = await createClient()
@@ -41,6 +49,8 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
           {[
             { href: '/owner/clubs',     label: 'Клубы' },
             { href: '/owner/analytics', label: 'Аналитика' },
+            { href: '/owner/menu',      label: 'Меню' },
+            { href: '/owner/tariffs',   label: 'Тарифы' },
           ].map(({ href, label }) => (
             <Link
               key={href}

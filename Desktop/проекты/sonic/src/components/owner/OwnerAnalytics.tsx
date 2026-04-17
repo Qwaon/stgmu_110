@@ -1,65 +1,67 @@
 'use client'
 import { useState, useMemo } from 'react'
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from 'recharts'
-import type { Club, Session } from '@/lib/types'
+import dynamic from 'next/dynamic'
+import type { Club } from '@/lib/types'
 import { IconDownload } from '../icons'
+
+const RechartsChart = dynamic(() => import('recharts').then(mod => {
+  const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = mod
+  function Chart({ data, clubs, colors, formatter }: {
+    data: Record<string, string | number>[]
+    clubs: Club[]
+    colors: string[]
+    formatter: (value: unknown, name: unknown) => [string, string]
+  }) {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="day" tick={{ fill: '#666666', fontSize: 11 }} tickLine={false} axisLine={false} interval={4} />
+          <YAxis tick={{ fill: '#666666', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}к`} width={36} />
+          <Tooltip
+            contentStyle={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
+            labelStyle={{ color: '#666666', fontSize: 12 }}
+            itemStyle={{ color: '#ffffff', fontSize: 13 }}
+            formatter={formatter}
+          />
+          {clubs.map((c, i) => (
+            <Line key={c.id} type="monotone" dataKey={c.id} stroke={colors[i % colors.length]} strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    )
+  }
+  return Chart
+}), { ssr: false, loading: () => <div className="h-[220px] flex items-center justify-center text-text-muted text-sm">Загрузка графика...</div> })
+
+interface DailyRow { club_id: string; day: string; revenue: number }
+interface HeatmapRow { dow: number; hour: number; count: number }
+interface Summary { sessionCount: number; totalRevenue: number; averageCheck: number | null; averageDuration: number | null }
+interface ExportSession { club_id: string; ended_at: string; total_minutes: number | null; total_amount: number | null }
 
 interface Props {
   clubs: Club[]
-  sessions: Session[]
+  daily: DailyRow[]
+  heatmap: HeatmapRow[]
+  summary: Summary
+  sessionsForExport: ExportSession[]
 }
 
 const DAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const CLUB_COLORS = ['#ffffff', '#22c55e']
 
-function dateKey(iso: string) {
-  const d = new Date(iso)
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
-function buildDailyRevenue(sessions: Session[], clubs: Club[]) {
-  const keys: string[] = []
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    keys.push(dateKey(d.toISOString()))
-  }
-
-  return keys.map(day => {
-    const row: Record<string, string | number> = { day }
-    for (const club of clubs) {
-      row[club.id] = sessions
-        .filter(s => s.club_id === club.id && s.ended_at && dateKey(s.ended_at) === day)
-        .reduce((sum, s) => sum + (s.total_amount ?? 0), 0)
-    }
-    return row
-  })
-}
-
-function buildHeatmap(sessions: Session[]) {
-  const grid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0))
-  for (const s of sessions) {
-    if (!s.started_at) continue
-    const d = new Date(s.started_at)
-    grid[d.getDay()][d.getHours()]++
-  }
-  return grid
-}
-
-function exportCSV(sessions: Session[], clubs: Club[]) {
+function exportCSV(sessions: ExportSession[], clubs: Club[]) {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
   const clubMap = Object.fromEntries(clubs.map(c => [c.id, c.name]))
-  const headers = ['Дата', 'Время', 'Клуб', 'Клиент', 'Мин', 'Сумма (₽)']
+  const headers = ['Дата', 'Время', 'Клуб', 'Мин', 'Сумма (₽)']
   const rows = sessions.map(s => [
     s.ended_at ? new Date(s.ended_at).toLocaleDateString('ru-RU') : '',
     s.ended_at ? new Date(s.ended_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '',
     clubMap[s.club_id] ?? s.club_id,
-    s.client_name,
     s.total_minutes ?? '',
     s.total_amount ?? '',
   ])
-  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+  const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\n')
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
@@ -69,17 +71,48 @@ function exportCSV(sessions: Session[], clubs: Club[]) {
   URL.revokeObjectURL(url)
 }
 
-export default function OwnerAnalytics({ clubs, sessions }: Props) {
+export default function OwnerAnalytics({ clubs, daily, heatmap: heatmapRows, summary, sessionsForExport }: Props) {
   const [selectedClubs, setSelectedClubs] = useState<Set<string>>(new Set(clubs.map(c => c.id)))
-
-  const filtered = useMemo(
-    () => sessions.filter(s => selectedClubs.has(s.club_id)),
-    [sessions, selectedClubs]
+  const selectedClubList = useMemo(
+    () => clubs.filter(c => selectedClubs.has(c.id)),
+    [clubs, selectedClubs]
   )
+  const clubNameById = useMemo(() => new Map(clubs.map(c => [c.id, c.name])), [clubs])
 
-  const dailyData = useMemo(() => buildDailyRevenue(filtered, clubs.filter(c => selectedClubs.has(c.id))), [filtered, clubs, selectedClubs])
-  const heatmap   = useMemo(() => buildHeatmap(filtered), [filtered])
-  const maxHeat   = useMemo(() => Math.max(...heatmap.flat(), 1), [heatmap])
+  // Build chart data from pre-aggregated daily rows
+  const dailyData = useMemo(() => {
+    const days: string[] = []
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      days.push(`${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`)
+    }
+
+    const sums = new Map<string, number>()
+    for (const row of daily) {
+      if (!selectedClubs.has(row.club_id)) continue
+      sums.set(`${row.club_id}:${row.day}`, row.revenue)
+    }
+
+    return days.map(day => {
+      const row: Record<string, string | number> = { day }
+      for (const club of selectedClubList) {
+        row[club.id] = sums.get(`${club.id}:${day}`) ?? 0
+      }
+      return row
+    })
+  }, [daily, selectedClubs, selectedClubList])
+
+  // Build heatmap grid from pre-aggregated rows
+  const heatmap = useMemo(() => {
+    const grid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0))
+    for (const row of heatmapRows) {
+      grid[row.dow][row.hour] = row.count
+    }
+    return grid
+  }, [heatmapRows])
+
+  const maxHeat = useMemo(() => Math.max(...heatmap.flat(), 1), [heatmap])
 
   function toggleClub(id: string) {
     setSelectedClubs(prev => {
@@ -89,11 +122,10 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
     })
   }
 
-  const tooltipFormatter = (value: unknown, name: unknown) => {
+  const tooltipFormatter = (value: unknown, name: unknown): [string, string] => {
     const clubId = typeof name === 'string' ? name : ''
-    const club = clubs.find(c => c.id === clubId)
     const num = typeof value === 'number' ? value : 0
-    return [`${Math.round(num).toLocaleString('ru-RU')} ₽`, club?.name ?? clubId]
+    return [`${Math.round(num).toLocaleString('ru-RU')} ₽`, clubNameById.get(clubId) ?? clubId]
   }
 
   return (
@@ -102,7 +134,7 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
       <div className="flex items-center justify-between">
         <h1 className="text-white font-semibold text-lg tracking-wide">Аналитика</h1>
         <button
-          onClick={() => exportCSV(filtered, clubs)}
+          onClick={() => exportCSV(sessionsForExport, clubs)}
           className="border border-white/15 hover:border-white/30 text-text-muted hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
         >
           <IconDownload />
@@ -134,42 +166,7 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
       {/* Revenue chart */}
       <div className="border border-white/10 rounded-lg p-5">
         <p className="text-white font-medium mb-4 text-sm">Выручка за 30 дней</p>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={dailyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis
-              dataKey="day"
-              tick={{ fill: '#666666', fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              interval={4}
-            />
-            <YAxis
-              tick={{ fill: '#666666', fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={v => `${(v/1000).toFixed(0)}к`}
-              width={36}
-            />
-            <Tooltip
-              contentStyle={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
-              labelStyle={{ color: '#666666', fontSize: 12 }}
-              itemStyle={{ color: '#ffffff', fontSize: 13 }}
-              formatter={tooltipFormatter}
-            />
-            {clubs.filter(c => selectedClubs.has(c.id)).map((c, i) => (
-              <Line
-                key={c.id}
-                type="monotone"
-                dataKey={c.id}
-                stroke={CLUB_COLORS[i % CLUB_COLORS.length]}
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+        <RechartsChart data={dailyData} clubs={selectedClubList} colors={CLUB_COLORS} formatter={tooltipFormatter} />
       </div>
 
       {/* Heatmap */}
@@ -224,22 +221,22 @@ export default function OwnerAnalytics({ clubs, sessions }: Props) {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Сессий за 30 дней', value: filtered.length },
+          {[
+          { label: 'Сессий за 30 дней', value: summary.sessionCount },
           {
             label: 'Общая выручка',
-            value: `${Math.round(filtered.reduce((s, x) => s + (x.total_amount ?? 0), 0)).toLocaleString('ru-RU')} ₽`
+            value: `${Math.round(summary.totalRevenue).toLocaleString('ru-RU')} ₽`
           },
           {
             label: 'Средний чек',
-            value: filtered.length
-              ? `${Math.round(filtered.reduce((s, x) => s + (x.total_amount ?? 0), 0) / filtered.length).toLocaleString('ru-RU')} ₽`
+            value: summary.averageCheck !== null
+              ? `${Math.round(summary.averageCheck).toLocaleString('ru-RU')} ₽`
               : '—'
           },
           {
             label: 'Средняя длит.',
-            value: filtered.filter(s => s.total_minutes).length
-              ? `${Math.round(filtered.filter(s => s.total_minutes).reduce((s, x) => s + (x.total_minutes ?? 0), 0) / filtered.filter(s => s.total_minutes).length)} мин`
+            value: summary.averageDuration !== null
+              ? `${Math.round(summary.averageDuration)} мин`
               : '—'
           },
         ].map(stat => (

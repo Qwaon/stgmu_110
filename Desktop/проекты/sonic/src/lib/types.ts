@@ -40,6 +40,16 @@ export interface Session {
   created_at: string
 }
 
+export interface AnalyticsSession {
+  club_id: string
+  client_name: string | null
+  started_at: string
+  ended_at: string | null
+  total_minutes: number | null
+  total_amount: number | null
+  orders_total: number
+}
+
 export interface Order {
   id: string
   session_id: string
@@ -89,4 +99,19 @@ export interface ActiveSession extends Session {
 // Room with its current active/paused session (null if free)
 export interface RoomWithSession extends Room {
   active_session: ActiveSession | null
+}
+
+export interface ClubOverviewStat {
+  club: Club
+  rooms: {
+    free: number
+    busy: number
+    booked: number
+  }
+  activeSessions: number
+  revenueToday: number
+  revenueWeek: number
+  revenueMonth: number
+  sessionsToday: number
+  averageDurationToday: number | null
 }

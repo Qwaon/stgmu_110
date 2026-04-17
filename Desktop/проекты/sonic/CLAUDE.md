@@ -14,47 +14,66 @@
 ```
 src/
 ├── app/
-│   ├── login/page.tsx          — страница входа
+│   ├── login/page.tsx              — страница входа (поддержка ?next= редиректа)
+│   ├── error.tsx                   — глобальный error boundary
+│   ├── loading.tsx                 — глобальный loading spinner
+│   ├─��� not-found.tsx               — кастомная 404
 │   ├── dashboard/
-│   │   ├── layout.tsx          — layout: хедер + навигация
+│   │   ├── layout.tsx              — layout: хедер + навигация
+│   │   ├── error.tsx               — error boundary для дашборда
+│   │   ├── loading.tsx             — loading spinner для дашборда
 │   │   ├── rooms/
-│   │   │   ├── page.tsx        — Server Component: загрузка комнат
-│   │   │   └── actions.ts      — Server Actions: старт/финиш/пауза сессий
-│   │   └── bookings/page.tsx   — заглушка (Phase 3)
-│   └── owner/page.tsx          — панель владельца (Phase 4)
-├── components/
-│   ├── RoomGrid.tsx            — Client: Realtime подписка, grid комнат
-│   ├── RoomCard.tsx            — карточка комнаты (бейдж брони, пульсация)
-│   ├── SessionTimer.tsx        — живой таймер (обновляется каждую секунду)
-│   ├── StartSessionModal.tsx   — модал: имя клиента → старт
-│   ├── EndSessionModal.tsx     — модал: инвойс → завершить (тиерные тарифы)
-│   ├── SessionSheet.tsx        — боттом-шит активной сессии (заказы, пауза)
-│   ├── AddOrderModal.tsx       — добавить позицию из меню к сессии
-│   ├── UndoToast.tsx           — 10с undo после завершения сессии
-│   ├── BookingsList.tsx        — Client: бронирования (два таба + Realtime)
-│   ├── CreateBookingModal.tsx  — форма создания брони
-│   ├── TariffSettings.tsx      — редактор тарифов по комнатам
-│   ├── ShiftSummaryModal.tsx   — сводка смены (итоги дня + CSV)
-│   ├── SessionExpiredDialog.tsx — попап когда scheduled_end_at истёк
+│   │   │   ├── page.tsx            — Server Component: загрузка комнат
+│   │   │   └── actions.ts          — Server Actions: старт/финиш/пауза сессий
+│   │   ├── bookings/
+│   │   │   ├── page.tsx            — список бронирований
+│   │   │   └── actions.ts          — создание/отмена/заселение бронирований
+│   │   ├── menu/actions.ts         — CRUD позиций меню
+│   │   └── tariffs/actions.ts      — обновление тарифов
 │   └── owner/
-│       ├── ClubsOverview.tsx   — два клуба side-by-side, авто-refresh
-│       └── OwnerAnalytics.tsx  — графики выручки, тепловая карта, CSV
-└── lib/
-    ├── supabase/
-    │   ├── client.ts           — createBrowserClient (для Client Components)
-    │   └── server.ts           — createServerClient (для Server Components/Actions)
-    ├── types.ts                — все TypeScript типы
-    └── session.ts              — расчёт времени и стоимости (тиерные тарифы)
+│       ├── layout.tsx              — layout владельца
+│       ├── error.tsx               — error boundary для владельца
+│       ├── loading.tsx             — loading spinner для владельца
+│       ├── clubs/page.tsx          — обзор клубов (агрегация через RPC)
+│       └── analytics/page.tsx      — графики, тепловая карта, CSV
+├── components/
+│   ├── RoomGrid.tsx                — Client: Realtime подписка, grid комнат
+│   ├── RoomCard.tsx                — карточка комнаты (memo, бейдж брони, пульсация)
+│   ├── SessionTimer.tsx            — живой таймер (обновляется каждую секунду)
+│   ├── StartSessionModal.tsx       — модал: старт сессии одним тапом
+│   ├── EndSessionModal.tsx         — модал: инвойс → завершить (тиерные тарифы)
+│   ├── SessionSheet.tsx            — боттом-шит активной сессии (заказы, пауза)
+│   ├── AddOrderModal.tsx           — добавить позицию из меню к сессии
+│   ├── UndoToast.tsx               — 10с undo после завершения сессии
+│   ├── BookingsList.tsx            — Client: бронирования (два таба + Realtime)
+│   ├── CreateBookingModal.tsx      — форма создания брони
+│   ├── TariffSettings.tsx          — редактор тарифов по комнатам
+│   ├── ShiftSummaryModal.tsx       — сводка смены (итоги дня + CSV)
+│   ├── SessionExpiredDialog.tsx    — попап когда scheduled_end_at истёк
+│   └── owner/
+│       ├── ClubsOverview.tsx       — два клуба side-by-side, авто-refresh через RPC
+│       └── OwnerAnalytics.tsx      — графики выручки (recharts lazy), тепловая карта, CSV
+├── lib/
+│   ├── env.ts                      — валидация env-переменных при старте
+│   ├── bookings.ts                 — валидация окна бронирования (включая проверку на прошлое)
+│   ├── supabase/
+│   │   ├── client.ts               — createBrowserClient (для Client Components)
+│   │   └── server.ts               — createServerClient (для Server Components/Actions)
+│   ├── types.ts                    — все TypeScript типы
+│   └── session.ts                  — расчёт времени и стоимости (тиерные тарифы)
+└── middleware.ts                    — защита роутов, ?next= URL после логина
 ```
 
 ## Роли и доступ
 
-| Роль | Что видит |
-|------|-----------|
-| `owner` | Оба клуба — аналитика, обзор |
-| `admin` | Только свой клуб — комнаты, сессии, заказы, бронирования |
+| Роль | Что видит | Доступ к Server Actions |
+|------|-----------|------------------------|
+| `owner` | Оба клуба — аналитика, обзор, меню, тарифы | menu + tariffs (с targetClubId, проверяется существование клуба) |
+| `admin` | Только свой клуб — комнаты, сессии, заказы, бронирования | rooms + bookings + menu + tariffs (только свой club_id) |
 
-RLS в Supabase обеспечивает изоляцию автоматически через `club_id`.
+- RLS в Supabase обеспечивает изоляцию через `club_id`
+- Server Actions проверяют роль явно (`getAuthContext`)
+- Owner не может вызвать admin-only actions (rooms, bookings) — получит 403
 
 ## Цветовая схема
 
@@ -69,11 +88,24 @@ accent-light: #4a43a0
 
 ## База данных
 
-Таблицы: `clubs` → `rooms` → `sessions` → `orders`, `bookings`, `users`
+Таблицы: `clubs` → `rooms` → `sessions` → `orders`, `bookings`, `users`, `menu_items`
 
 Ключевое поле: `club_id` — присутствует в каждой таблице, по нему строится RLS.
 
 `paused_duration_ms` — суммарное время паузы в миллисекундах (bigint), не interval.
+
+### Атомарные RPC-функции
+
+Все мутации состояния через `SECURITY DEFINER VOLATILE` функции с `set search_path = ''`:
+- `start_session_atomic`, `end_session_atomic`, `undo_end_session_atomic`
+- `pause_session_atomic`, `resume_session_atomic`
+- `cancel_booking_atomic`, `check_in_booking_atomic`
+- `get_rooms_dashboard_payload`, `get_shift_summary_payload`
+- `get_clubs_overview`, `get_owner_analytics` — серверная агрегация
+
+### Миграции
+
+Единый файл `supabase/migrations/setup_all.sql` — запускается один раз для нового проекта (базовая схема + RLS + seed). Расширения в отдельных файлах 0004–0017.
 
 ## Команды
 
@@ -87,15 +119,12 @@ npx tsc --noEmit  # проверка типов
 
 ## Тесты
 
-Юнит-тесты в `tests/session.test.ts` покрывают:
-- `calculateElapsedMs` — расчёт активного времени с учётом пауз
-- `calculateSessionMinutes` — перевод мс в минуты (округление вверх)
-- `calculateSessionAmount` — стоимость сессии
-- `formatDuration` — форматирование времени (MM:SS / H:MM:SS)
+- `tests/session.test.ts` — расчёт времени, стоимости, форматирование
+- `tests/bookings.test.ts` — валидация окна бронирования, видимость активных броней
 
 ## Важные паттерны
 
-**Суpabase в Server Component:**
+**Supabase в Server Component:**
 ```typescript
 import { createClient } from '@/lib/supabase/server'
 const supabase = await createClient()
@@ -116,17 +145,27 @@ revalidatePath('/dashboard/rooms')
 ```
 
 **Realtime (в RoomGrid.tsx):**
-Подписка на `rooms` и `sessions` по `club_id=eq.{clubId}`.
-При любом событии вызывает `refetch()` — переполучает все комнаты с активными сессиями.
+Подписка на `rooms`, `sessions`, `orders`, `bookings` по `club_id=eq.{clubId}`.
+Гранулярное обновление состояния через `setRooms` / `setBookings` без полного refetch.
+
+## Безопасность
+
+- HTTP-заголовки: CSP, X-Frame-Options: DENY, HSTS, nosniff, Permissions-Policy
+- `poweredByHeader: false` в next.config.mjs
+- Server Actions: санитизация ошибок (не показывают PG-ошибки клиенту)
+- Валидация длин строк: phone ≤30, notes ≤500, menu name 1–100
+- Env-переменные валидируются при старте (`src/lib/env.ts`)
+- `?next=` URL сохраняется при редиректе на логин (только внутренние пути)
 
 ## Настройка Supabase (первый запуск)
 
 1. Создать проект на supabase.com
 2. `.env.local` → заполнить `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. SQL Editor → запустить миграции по порядку: `0001_schema.sql` → `0002_rls.sql` → `0003_seed.sql` → `0004_menu.sql` → `0005_bookings_ext.sql` → `0006_tiered_rates.sql`
+3. SQL Editor → запустить `supabase/migrations/setup_all.sql`
 4. Authentication → Users → создать `owner@sonic.stv`, `morozova@sonic.stv`, `tolstogo@sonic.stv`
-5. SQL Editor → вставить UID из шага 4 в закомментированный INSERT в `0003_seed.sql`
-6. Database → Replication → включить таблицы `rooms`, `sessions`, `bookings`
+5. SQL Editor → вставить UID из шага 4 в закомментированный INSERT в `setup_all.sql`
+6. Database → Replication → включить таблицы `rooms`, `sessions`, `orders`, `bookings`
+7. `npm run dev` → готово
 
 ## Текущий прогресс
 
@@ -136,4 +175,5 @@ revalidatePath('/dashboard/rooms')
 - ✅ Phase 3: Бронирования
 - ✅ Phase 4: Панель владельца
 - ✅ Phase 5: UX-автоматизации (адаптивность планшет — pending)
+- ✅ Аудит: безопасность, баги, производительность, прод-readiness
 - ⬜ Phase 6: Масштабирование

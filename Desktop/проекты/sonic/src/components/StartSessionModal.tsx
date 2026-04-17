@@ -7,17 +7,28 @@ import { IconX } from './icons'
 interface Props {
   room: Room
   onClose: () => void
+  onStarted?: (roomId: string) => void | Promise<void>
+  upcomingBookingAt?: string | null
 }
 
-export default function StartSessionModal({ room, onClose }: Props) {
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
+
+export default function StartSessionModal({ room, onClose, onStarted, upcomingBookingAt }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+
+  const minsToBooking = upcomingBookingAt
+    ? Math.max(0, Math.ceil((new Date(upcomingBookingAt).getTime() - Date.now()) / 60_000))
+    : null
 
   async function handleStart() {
     setLoading(true)
     setError(null)
     try {
       await startSession(room.id)
+      await onStarted?.(room.id)
       onClose()
     } catch {
       setError('Не удалось начать сессию. Попробуйте снова.')
@@ -40,6 +51,14 @@ export default function StartSessionModal({ room, onClose }: Props) {
             <IconX />
           </button>
         </div>
+
+        {minsToBooking !== null && minsToBooking <= 60 && (
+          <div className="border border-orange-400/30 rounded-lg px-3 py-2 mb-4">
+            <p className="text-orange-400 text-sm">
+              Бронь в {formatTime(upcomingBookingAt!)} (через {minsToBooking} мин)
+            </p>
+          </div>
+        )}
 
         {error && (
           <p className="text-status-busy text-sm border border-status-busy/30 rounded-lg px-3 py-2 mb-4">{error}</p>

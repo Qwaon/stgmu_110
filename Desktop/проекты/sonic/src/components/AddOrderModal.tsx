@@ -1,38 +1,22 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 import { addOrder } from '@/app/dashboard/rooms/actions'
-import type { MenuItem } from '@/lib/types'
+import type { MenuItem, Order } from '@/lib/types'
 import { IconX } from './icons'
 
 interface Props {
   sessionId: string
   clubId: string
+  items: MenuItem[]
   onClose: () => void
-  onAdded: () => void
+  onAdded: (order: Order) => void
 }
 
-export default function AddOrderModal({ sessionId, clubId, onClose, onAdded }: Props) {
-  const [items, setItems]       = useState<MenuItem[]>([])
+export default function AddOrderModal({ sessionId, clubId: _clubId, items, onClose, onAdded }: Props) {
   const [selected, setSelected] = useState<MenuItem | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading]   = useState(false)
-  const [fetching, setFetching] = useState(true)
   const [error, setError]       = useState<string | null>(null)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('menu_items')
-      .select('*')
-      .eq('club_id', clubId)
-      .order('is_pinned', { ascending: false })
-      .order('order_count', { ascending: false })
-      .then(({ data }) => {
-        setItems(data ?? [])
-        setFetching(false)
-      })
-  }, [clubId])
 
   const pinned = items.filter(i => i.is_pinned)
   const rest   = items.filter(i => !i.is_pinned)
@@ -42,8 +26,8 @@ export default function AddOrderModal({ sessionId, clubId, onClose, onAdded }: P
     setLoading(true)
     setError(null)
     try {
-      await addOrder(sessionId, selected.id, quantity)
-      onAdded()
+      const order = await addOrder(sessionId, selected.id, quantity)
+      onAdded(order)
       onClose()
     } catch {
       setError('Ошибка при добавлении заказа')
@@ -66,9 +50,7 @@ export default function AddOrderModal({ sessionId, clubId, onClose, onAdded }: P
         </div>
 
         {/* Item list */}
-        {fetching ? (
-          <div className="p-8 text-center text-text-muted text-sm">Загрузка...</div>
-        ) : items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="p-8 text-center text-text-muted text-sm">
             Каталог пуст. Добавьте позиции в разделе «Меню».
           </div>
@@ -132,7 +114,7 @@ export default function AddOrderModal({ sessionId, clubId, onClose, onAdded }: P
                 >−</button>
                 <span className="text-white font-bold w-4 text-center">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(q => q + 1)}
+                  onClick={() => setQuantity(q => Math.min(99, q + 1))}
                   className="w-8 h-8 rounded-lg border border-white/15 hover:border-white/30 text-white font-bold transition-colors"
                 >+</button>
               </div>

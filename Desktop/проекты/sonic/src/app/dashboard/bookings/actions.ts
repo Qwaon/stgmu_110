@@ -1,6 +1,8 @@
 'use server'
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { assertUUID } from '@/lib/validation'
+import { validateBookingWindow } from '@/lib/bookings'
+import type { Booking } from '@/lib/types'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -9,12 +11,18 @@ async function getAuthContext() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('club_id')
+    .select('role, club_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.club_id) throw new Error('No club assigned')
+  if (!profile) throw new Error('Unauthorized')
+  if (profile.role !== 'admin') throw new Error('Forbidden: admin role required')
+  if (!profile.club_id) throw new Error('No club assigned')
   return { supabase, clubId: profile.club_id as string }
+}
+
+function throwActionError(message: string | undefined, fallback: string): never {
+  throw new Error(message || fallback)
 }
 
 export async function createBooking(
@@ -23,26 +31,51 @@ export async function createBooking(
   startsAt: string,
   endsAt: string | null,
   notes: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; booking?: Booking }> {
+  try { assertUUID(roomId, 'roomId') } catch { return { error: 'Некорректный ID комнаты' } }
   const { supabase, clubId } = await getAuthContext()
 
-  // Conflict check: only when this booking has an end time
-  if (endsAt) {
-    const { data: conflicts } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('room_id', roomId)
-      .eq('status', 'active')
-      .not('ends_at', 'is', null)
-      .lt('starts_at', endsAt)
-      .gt('ends_at', startsAt)
+  if (phone.length > 30) return { error: 'Телефон слишком длинный' }
+  if (notes.length > 500) return { error: 'Заметка слишком длинная' }
 
-    if (conflicts && conflicts.length > 0) {
-      return { error: 'Это время уже занято другой бронью' }
-    }
+  const validationError = validateBookingWindow(startsAt, endsAt)
+  if (validationError) return { error: validationError }
+
+  const { data: room, error: roomError } = await supabase
+    .from('rooms')
+    .select('id')
+    .eq('id', roomId)
+    .eq('club_id', clubId)
+    .single()
+
+  if (roomError || !room) return { error: 'Комната не найдена' }
+
+  // Conflict check: treat open-ended bookings as ending in far future.
+  // Two queries cover all four overlap cases (timed/open × timed/open).
+  const farFuture    = '2099-12-31T23:59:59.999Z'
+  const effectiveEnd = endsAt ?? farFuture
+
+  const [{ data: timedConflicts }, { data: openConflicts }] = await Promise.all([
+    // Existing timed bookings that overlap our window
+    supabase.from('bookings').select('id')
+      .eq('room_id', roomId).eq('status', 'active')
+      .not('ends_at', 'is', null)
+      .lt('starts_at', effectiveEnd)
+      .gt('ends_at', startsAt)
+      .limit(1),
+    // Existing open-ended bookings that start before our effective end
+    supabase.from('bookings').select('id')
+      .eq('room_id', roomId).eq('status', 'active')
+      .is('ends_at', null)
+      .lt('starts_at', effectiveEnd)
+      .limit(1),
+  ])
+
+  if ((timedConflicts?.length ?? 0) + (openConflicts?.length ?? 0) > 0) {
+    return { error: 'Это время уже занято другой бронью' }
   }
 
-  const { error } = await supabase
+  const { data: booking, error } = await supabase
     .from('bookings')
     .insert({
       club_id:     clubId,
@@ -54,111 +87,52 @@ export async function createBooking(
       notes:       notes.trim() || null,
       status:      'active',
     })
+    .select('*')
+    .single()
 
-  if (error) return { error: error.message }
+  if (error?.message?.includes('bookings_no_overlap_per_room')) {
+    return { error: 'Это время уже занято другой бронью' }
+  }
+  if (error) return { error: 'Не удалось создать бронь' }
 
-  // Mark room as booked if it's currently free
-  await supabase
-    .from('rooms')
-    .update({ status: 'booked' })
-    .eq('id', roomId)
-    .eq('club_id', clubId)
-    .eq('status', 'free')
+  // Room stays free — it's available for sessions until the booking time.
+  // No room.status change here; RoomCard will show the booking badge.
 
-  revalidatePath('/dashboard/bookings')
-  revalidatePath('/dashboard/rooms')
-  return {}
+  return { booking: booking as Booking }
 }
 
 export async function cancelBooking(bookingId: string): Promise<void> {
+  assertUUID(bookingId, 'bookingId')
   const { supabase, clubId } = await getAuthContext()
 
-  // Get booking to know the room
+  // Verify booking belongs to this club before calling RPC
   const { data: booking } = await supabase
     .from('bookings')
-    .select('room_id')
+    .select('id')
     .eq('id', bookingId)
     .eq('club_id', clubId)
     .single()
 
-  if (!booking) throw new Error('Booking not found')
+  if (!booking) throw new Error('Бронь не найдена')
 
-  await supabase
-    .from('bookings')
-    .update({ status: 'cancelled' })
-    .eq('id', bookingId)
-    .eq('club_id', clubId)
-
-  // Check if there are remaining active bookings for this room
-  const { data: remaining } = await supabase
-    .from('bookings')
-    .select('id')
-    .eq('room_id', booking.room_id)
-    .eq('status', 'active')
-
-  // If no more active bookings and room has no active session → free it
-  if (!remaining || remaining.length === 0) {
-    const { data: activeSession } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('room_id', booking.room_id)
-      .in('status', ['active', 'paused'])
-      .limit(1)
-
-    if (!activeSession || activeSession.length === 0) {
-      await supabase
-        .from('rooms')
-        .update({ status: 'free' })
-        .eq('id', booking.room_id)
-        .eq('club_id', clubId)
-        .eq('status', 'booked')
-    }
-  }
-
-  revalidatePath('/dashboard/bookings')
-  revalidatePath('/dashboard/rooms')
+  const { error } = await supabase.rpc('cancel_booking_atomic', { p_booking_id: bookingId })
+  if (error) throwActionError(error.message, 'Failed to cancel booking')
 }
 
 export async function checkInBooking(bookingId: string): Promise<void> {
+  assertUUID(bookingId, 'bookingId')
   const { supabase, clubId } = await getAuthContext()
 
-  // Get booking details
+  // Verify booking belongs to this club before calling RPC
   const { data: booking } = await supabase
     .from('bookings')
-    .select('room_id, ends_at')
+    .select('id')
     .eq('id', bookingId)
     .eq('club_id', clubId)
     .single()
 
-  if (!booking) throw new Error('Booking not found')
+  if (!booking) throw new Error('Бронь не найдена')
 
-  // Start session with scheduled_end_at from booking
-  const { error: sessionErr } = await supabase
-    .from('sessions')
-    .insert({
-      room_id:          booking.room_id,
-      club_id:          clubId,
-      client_name:      null,
-      status:           'active',
-      scheduled_end_at: booking.ends_at,
-    })
-
-  if (sessionErr) throw new Error(sessionErr.message)
-
-  // Mark booking as completed
-  await supabase
-    .from('bookings')
-    .update({ status: 'completed' })
-    .eq('id', bookingId)
-    .eq('club_id', clubId)
-
-  // Mark room as busy
-  await supabase
-    .from('rooms')
-    .update({ status: 'busy' })
-    .eq('id', booking.room_id)
-    .eq('club_id', clubId)
-
-  revalidatePath('/dashboard/bookings')
-  revalidatePath('/dashboard/rooms')
+  const { error } = await supabase.rpc('check_in_booking_atomic', { p_booking_id: bookingId })
+  if (error) throwActionError(error.message, 'Failed to check in booking')
 }

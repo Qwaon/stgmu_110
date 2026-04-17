@@ -124,16 +124,26 @@ async function main() {
       ('${CLUB_1}', 'Room 1', 'standard'),
       ('${CLUB_1}', 'Room 2', 'standard'),
       ('${CLUB_1}', 'Room 3', 'standard'),
-      ('${CLUB_1}', 'VIP',    'vip'),
+      ('${CLUB_1}', 'Room 4', 'standard'),
       ('${CLUB_1}', 'Room 5', 'standard'),
+      ('${CLUB_1}', 'Room 6', 'standard'),
+      ('${CLUB_1}', 'Room 7', 'standard'),
+      ('${CLUB_1}', 'Room 8', 'standard'),
       ('${CLUB_2}', 'Room 1', 'standard'),
       ('${CLUB_2}', 'Room 2', 'standard'),
-      ('${CLUB_2}', 'VIP',    'vip'),
-      ('${CLUB_2}', 'Room 4', 'standard')
+      ('${CLUB_2}', 'Room 3', 'standard'),
+      ('${CLUB_2}', 'Room 4', 'standard'),
+      ('${CLUB_2}', 'Room 5', 'standard'),
+      ('${CLUB_2}', 'Room 6', 'standard'),
+      ('${CLUB_2}', 'Room 7', 'standard'),
+      ('${CLUB_2}', 'Room 8', 'standard'),
+      ('${CLUB_2}', 'VIP 1',  'vip'),
+      ('${CLUB_2}', 'VIP 2',  'vip'),
+      ('${CLUB_2}', 'VIP 3',  'vip')
     ON CONFLICT DO NOTHING;
   `)
-  console.log('  ✅ 5 комнат — Морозова')
-  console.log('  ✅ 4 комнаты — Толстого')
+  console.log('  ✅ 8 комнат — Морозова')
+  console.log('  ✅ 11 комнат — Толстого (8 standard + 3 VIP)')
 
   // ── 4. Auth users + profiles ─────────────────────────────────────────────────
   console.log('\n👤 Creating users...')
