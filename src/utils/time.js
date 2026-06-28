@@ -1,4 +1,4 @@
-import { DAYS, schedule } from '../data/schedule'
+import { DAYS } from '../data/schedule'
 
 export function getTodayKey() {
   const jsDay = new Date().getDay()
@@ -51,8 +51,9 @@ export function isActiveOn(lesson, date) {
   return true
 }
 
-export function getLessonsForDate(dayKey, date) {
-  return (schedule[dayKey] || []).filter((l) => isActiveOn(l, date))
+// daySchedule: массив занятий дня (schedules[group][dayKey])
+export function getLessonsForDate(dayKey, date, daySchedule) {
+  return (daySchedule || []).filter((l) => isActiveOn(l, date))
 }
 
 export function getCurrentIndex(lessons) {

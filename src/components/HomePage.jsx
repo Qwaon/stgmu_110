@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DAYS } from '../data/schedule'
+import { DAYS, schedules } from '../data/schedule'
 import LessonCard from './LessonCard'
 import {
   getTodayKey,
@@ -28,7 +28,7 @@ function minutesLabel(n) {
   return `${n} минут`
 }
 
-export default function HomePage() {
+export default function HomePage({ group }) {
   const [, tick] = useState(0)
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function HomePage() {
   const todayKey = getTodayKey()
   const dayInfo  = DAYS.find((d) => d.key === todayKey)
   const today    = new Date()
-  const lessons  = todayKey ? getLessonsForDate(todayKey, today) : []
+  const lessons  = todayKey ? getLessonsForDate(todayKey, today, schedules[group][todayKey]) : []
 
   const nowIndex  = getCurrentIndex(lessons)
   const nextIndex = nowIndex === -1 ? getNextIndex(lessons) : -1

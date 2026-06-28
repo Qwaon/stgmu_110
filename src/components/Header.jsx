@@ -11,22 +11,38 @@ const IconMoon = () => (
   </svg>
 )
 
-export default function Header({ darkMode, onToggleDark }) {
+import { GROUPS } from '../data/schedule'
+
+export default function Header({ darkMode, onToggleDark, group, onSelectGroup }) {
   return (
     <header className="header">
       <div className="header-inner">
         <div className="header-title">
           <span className="header-dot" />
           <h1>Расписание</h1>
-          <span className="header-group">110 группа</span>
         </div>
-        <button
-          className="theme-toggle"
-          onClick={onToggleDark}
-          aria-label="Переключить тему"
-        >
-          {darkMode ? <IconSun /> : <IconMoon />}
-        </button>
+
+        <div className="header-actions">
+          <div className="group-switch" role="group" aria-label="Группа">
+            {GROUPS.map((g) => (
+              <button
+                key={g}
+                className={`group-switch-btn${g === group ? ' group-switch-btn--active' : ''}`}
+                onClick={() => onSelectGroup(g)}
+                aria-pressed={g === group}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <button
+            className="theme-toggle"
+            onClick={onToggleDark}
+            aria-label="Переключить тему"
+          >
+            {darkMode ? <IconSun /> : <IconMoon />}
+          </button>
+        </div>
       </div>
     </header>
   )

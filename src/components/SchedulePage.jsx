@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DAYS } from '../data/schedule'
+import { DAYS, schedules } from '../data/schedule'
 import DayTabs from './DayTabs'
 import LessonCard from './LessonCard'
 import { getTodayKey, getLessonsForDate, getWeekDate } from '../utils/time'
@@ -16,14 +16,14 @@ function formatWeekRange(weekOffset) {
   return m1 === m2 ? `${d1}–${d2} ${m1}` : `${d1} ${m1} – ${d2} ${m2}`
 }
 
-export default function SchedulePage() {
+export default function SchedulePage({ group }) {
   const todayKey = getTodayKey()
   const [activeDay, setActiveDay] = useState(todayKey || 'monday')
   const [weekOffset, setWeekOffset] = useState(0)
 
   const dayInfo  = DAYS.find((d) => d.key === activeDay)
   const weekDate = getWeekDate(dayInfo.jsDay, weekOffset)
-  const lessons  = getLessonsForDate(activeDay, weekDate)
+  const lessons  = getLessonsForDate(activeDay, weekDate, schedules[group][activeDay])
 
   return (
     <div className="schedule-page">
