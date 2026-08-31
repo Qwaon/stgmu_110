@@ -16,8 +16,8 @@ export default function DayTabs({ active, onSelect, todayKey, weekOffset = 0 }) 
             ].join(' ')}
             onClick={() => onSelect(day.key)}
           >
+            <span className="day-tab-full">{day.label}</span>
             <span className="day-tab-short">{date.getDate()}</span>
-            <span className="day-tab-full">{day.full}</span>
             {todayKey === day.key && weekOffset === 0 && <span className="today-dot" />}
           </button>
         )

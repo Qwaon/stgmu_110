@@ -137,7 +137,7 @@ export default function HomePage({ group }) {
           }
 
           return (
-            <div key={i}>
+            <div key={i} className="lesson-row">
               {breakMins > 0 && <BreakSeparator minutes={breakMins} />}
               <LessonCard
                 lesson={lesson}
