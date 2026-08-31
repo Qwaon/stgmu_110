@@ -33,8 +33,10 @@ export default function App() {
       />
 
       <main className="main">
-        {page === 'home'     && <HomePage group={group} />}
-        {page === 'schedule' && <SchedulePage group={group} />}
+        <div className="fade-in" key={`${page}-${group}`}>
+          {page === 'home'     && <HomePage group={group} />}
+          {page === 'schedule' && <SchedulePage group={group} />}
+        </div>
       </main>
 
       <BottomNav active={page} onSelect={setPage} />

@@ -56,12 +56,12 @@ export default function SchedulePage({ group }) {
       </div>
 
       {lessons.length === 0 ? (
-        <div className="home-empty" style={{ minHeight: '40dvh' }}>
+        <div className="home-empty fade-in" key={`${activeDay}-${weekOffset}-empty`} style={{ minHeight: '40dvh' }}>
           <p className="home-empty-title">Занятий нет</p>
           <p className="home-empty-sub">На эту дату пар не запланировано</p>
         </div>
       ) : (
-        <div className="lessons-list">
+        <div className="lessons-list fade-in" key={`${activeDay}-${weekOffset}`}>
           {lessons.map((lesson, i) => (
             <LessonCard key={i} lesson={lesson} index={i} />
           ))}
